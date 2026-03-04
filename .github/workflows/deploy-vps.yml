@@ -35,8 +35,26 @@ jobs:
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
             set -e
             
-            echo "Stopping existing containers..."
+            echo "Cloning deployment files..."
+            mkdir -p ~/plane-deploy
             cd ~/plane-deploy
+            
+            # Clone the repo to get docker-compose.yml
+            if [ -d .git ]; then
+              git pull
+            else
+              git clone https://github.com/NishantGoswami-Mahakalp/paperplane.git .
+              git checkout preview
+            fi
+            
+            cd deploy/vps
+            
+            # Create env files if they don't exist
+            cp -n .env .env 2>/dev/null || true
+            mkdir -p apps/api
+            cp -n apps/api/.env apps/api/.env 2>/dev/null || true
+            
+            echo "Stopping existing containers..."
             docker compose down || true
             
             echo "Pulling new images..."
