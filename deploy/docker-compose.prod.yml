@@ -1,0 +1,73 @@
+# Production docker-compose - use with custom built images
+# Copy this as docker-compose.yml or run with -f docker-compose.yml -f deploy/docker-compose.prod.yml
+
+services:
+  web:
+    image: plane-web:latest
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile.web
+      args:
+        DOCKER_BUILDKIT: 1
+
+  admin:
+    image: plane-admin:latest
+    build:
+      context: .
+      dockerfile: ./apps/admin/Dockerfile.admin
+      args:
+        DOCKER_BUILDKIT: 1
+
+  space:
+    image: plane-space:latest
+    build:
+      context: .
+      dockerfile: ./apps/space/Dockerfile.space
+      args:
+        DOCKER_BUILDKIT: 1
+
+  api:
+    image: plane-api:latest
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.api
+      args:
+        DOCKER_BUILDKIT: 1
+
+  worker:
+    image: plane-api:latest
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.api
+      args:
+        DOCKER_BUILDKIT: 1
+
+  beat-worker:
+    image: plane-api:latest
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.api
+      args:
+        DOCKER_BUILDKIT: 1
+
+  migrator:
+    image: plane-api:latest
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.api
+      args:
+        DOCKER_BUILDKIT: 1
+
+  live:
+    image: plane-live:latest
+    build:
+      context: .
+      dockerfile: ./apps/live/Dockerfile.live
+      args:
+        DOCKER_BUILDKIT: 1
+
+  proxy:
+    image: plane-proxy:latest
+    build:
+      context: ./apps/proxy
+      dockerfile: Dockerfile.ce

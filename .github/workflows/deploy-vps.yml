@@ -1,0 +1,56 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - preview
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout deploy scripts
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            deploy/vps
+          sparse-checkout-cone-mode: false
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+
+      - name: Add VPS host key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy via SSH
+        run: |
+          ssh ${{ vars.VPS_USER || 'root' }}@${{ secrets.VPS_HOST }} << 'EOF'
+            set -e
+            
+            echo "Stopping existing containers..."
+            cd ~/plane-deploy
+            docker compose down || true
+            
+            echo "Pulling new images..."
+            docker compose pull
+            docker compose up -d
+            
+            echo "Cleaning up old images..."
+            docker image prune -f
+            
+            echo "Deployment complete!"
+            docker compose ps
+          EOF
+
+      - name: Summary
+        run: |
+          echo "## Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "Deployed to: ${{ vars.VPS_USER || 'root' }}@${{ secrets.VPS_HOST }}" >> $GITHUB_STEP_SUMMARY
