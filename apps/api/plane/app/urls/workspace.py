@@ -36,6 +36,11 @@ from plane.app.views import (
     WorkspaceHomePreferenceViewSet,
     WorkspaceStickyViewSet,
     WorkspaceUserPreferenceViewSet,
+    ForgejoRepositoriesEndpoint,
+    ForgejoImporterInfoEndpoint,
+    ForgejoImporterCreateEndpoint,
+    ForgejoRepositorySyncEndpoint,
+    ForgejoRepositorySyncListEndpoint,
 )
 
 
@@ -256,5 +261,31 @@ urlpatterns = [
         "workspaces/<str:slug>/sidebar-preferences/",
         WorkspaceUserPreferenceViewSet.as_view(),
         name="workspace-user-preference",
+    ),
+    # Forgejo Integration
+    path(
+        "workspaces/<str:slug>/workspace-integrations/<uuid:integration_id>/forgejo-repositories/",
+        ForgejoRepositoriesEndpoint.as_view(),
+        name="forgejo-repositories",
+    ),
+    path(
+        "workspaces/<str:slug>/importers/forgejo/",
+        ForgejoImporterInfoEndpoint.as_view(),
+        name="forgejo-importer-info",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/importers/forgejo/",
+        ForgejoImporterCreateEndpoint.as_view(),
+        name="forgejo-importer-create",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/forgejo-syncs/",
+        ForgejoRepositorySyncListEndpoint.as_view(),
+        name="forgejo-sync-list",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/forgejo-syncs/<uuid:sync_id>/",
+        ForgejoRepositorySyncEndpoint.as_view(),
+        name="forgejo-sync-detail",
     ),
 ]
