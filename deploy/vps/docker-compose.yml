@@ -1,18 +1,18 @@
 services:
   web:
-    image: ghcr.io/nishantg/paperplane:latest-web
+    image: ghcr.io/nishantggoswami-mahakalp/paperplane:latest-web
     restart: always
 
   admin:
-    image: ghcr.io/nishantg/paperplane:latest-admin
+    image: ghcr.io/nishantggoswami-mahakalp/paperplane:latest-admin
     restart: always
 
   space:
-    image: ghcr.io/nishantg/paperplane:latest-space
+    image: ghcr.io/nishantggoswami-mahakalp/paperplane:latest-space
     restart: always
 
   api:
-    image: ghcr.io/nishantg/paperplane:latest-api
+    image: ghcr.io/nishantggoswami-mahakalp/paperplane:latest-api
     restart: always
     command: ./bin/docker-entrypoint-api.sh
     env_file:
@@ -22,7 +22,7 @@ services:
       - plane-redis
 
   worker:
-    image: ghcr.io/nishantg/paperplane:latest-api
+    image: ghcr.io/nishantggoswami-mahakalp/paperplane:latest-api
     restart: always
     command: ./bin/docker-entrypoint-worker.sh
     env_file:
@@ -31,7 +31,7 @@ services:
       - api
 
   beat-worker:
-    image: ghcr.io/nishantg/paperplane:latest-api
+    image: ghcr.io/nishantggoswami-mahakalp/paperplane:latest-api
     restart: always
     command: ./bin/docker-entrypoint-beat.sh
     env_file:
@@ -40,7 +40,7 @@ services:
       - api
 
   migrator:
-    image: ghcr.io/nishantg/paperplane:latest-api
+    image: ghcr.io/nishantggoswami-mahakalp/paperplane:latest-api
     restart: "no"
     command: ./bin/docker-entrypoint-migrator.sh
     env_file:
@@ -49,7 +49,7 @@ services:
       - plane-db
 
   live:
-    image: ghcr.io/nishantg/paperplane:latest-live
+    image: ghcr.io/nishantggoswami-mahakalp/paperplane:latest-live
     restart: always
 
   plane-db:
@@ -95,7 +95,7 @@ services:
       MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY}
 
   proxy:
-    image: ghcr.io/nishantg/paperplane:latest-proxy
+    image: ghcr.io/nishantggoswami-mahakalp/paperplane:latest-proxy
     restart: always
     ports:
       - ${LISTEN_HTTP_PORT}:80
