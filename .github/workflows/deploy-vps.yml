@@ -49,10 +49,8 @@ jobs:
             
             cd deploy/vps
             
-            # Create env files if they don't exist
-            cp -n .env .env 2>/dev/null || true
-            mkdir -p apps/api
-            cp -n apps/api/.env apps/api/.env 2>/dev/null || true
+            # Env files already exist in repo with placeholders
+            # User should edit them on VPS after first deploy
             
             echo "Stopping existing containers..."
             docker compose down || true
