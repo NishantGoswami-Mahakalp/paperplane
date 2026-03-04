@@ -32,7 +32,7 @@ jobs:
 
       - name: Deploy via SSH
         run: |
-          ssh ${{ vars.VPS_USER || 'root' }}@${{ secrets.VPS_HOST }} << 'EOF'
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
             set -e
             
             echo "Stopping existing containers..."
@@ -53,4 +53,4 @@ jobs:
       - name: Summary
         run: |
           echo "## Deployment Complete" >> $GITHUB_STEP_SUMMARY
-          echo "Deployed to: ${{ vars.VPS_USER || 'root' }}@${{ secrets.VPS_HOST }}" >> $GITHUB_STEP_SUMMARY
+          echo "Deployed to: ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" >> $GITHUB_STEP_SUMMARY
