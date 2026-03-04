@@ -19,6 +19,7 @@ import { Loader } from "@plane/ui";
 // assets
 import GithubLogo from "@/app/assets/services/github.png?url";
 import SlackLogo from "@/app/assets/services/slack.png?url";
+import GiteaLogo from "@/app/assets/logos/gitea-logo.svg?url";
 // constants
 import { WORKSPACE_INTEGRATIONS } from "@/constants/fetch-keys";
 // hooks
@@ -43,6 +44,11 @@ const integrationDetails: { [key: string]: any } = {
     logo: SlackLogo,
     installed: "Activate Slack on individual projects to sync with specific channels.",
     notInstalled: "Connect with Slack with your Plane workspace to sync project work items.",
+  },
+  forgejo: {
+    logo: GiteaLogo,
+    installed: "Activate Forgejo on individual projects to sync with specific repositories.",
+    notInstalled: "Connect with Forgejo with your Plane workspace to sync project work items.",
   },
 };
 

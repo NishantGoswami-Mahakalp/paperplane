@@ -44,6 +44,11 @@ const useIntegrationPopup = ({
   const openPopup = () => {
     if (!provider) return;
 
+    // Forgejo doesn't use OAuth popup, it's handled via workspace integration API
+    if (provider === "forgejo") {
+      return null;
+    }
+
     const width = 600,
       height = 600;
     const left = window.innerWidth / 2 - width / 2;

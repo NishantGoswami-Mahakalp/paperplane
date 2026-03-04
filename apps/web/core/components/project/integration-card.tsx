@@ -11,9 +11,11 @@ import type { IWorkspaceIntegration } from "@plane/types";
 // assets
 import GithubLogo from "@/app/assets/logos/github-square.png?url";
 import SlackLogo from "@/app/assets/services/slack.png?url";
+import GiteaLogo from "@/app/assets/logos/gitea-logo.svg?url";
 // components
 import { SelectChannel } from "@/components/integration/slack/select-channel";
 import { SelectRepository } from "@/components/integration/github/select-repository";
+import { SelectForgejoRepository } from "@/components/integration/forgejo/select-repository";
 // constants
 import { PROJECT_GITHUB_REPOSITORY } from "@/constants/fetch-keys";
 // services
@@ -31,6 +33,10 @@ const integrationDetails: { [key: string]: any } = {
   slack: {
     logo: SlackLogo,
     description: "Get regular updates and control which notification you want to receive.",
+  },
+  forgejo: {
+    logo: GiteaLogo,
+    description: "Select Forgejo repository to enable sync.",
   },
 };
 
@@ -115,6 +121,14 @@ export function IntegrationCard({ integration }: Props) {
                   : "Select Repository"
               }
               onChange={handleChange}
+            />
+          )}
+          {integration.integration_detail.provider === "forgejo" && (
+            <SelectForgejoRepository
+              integration={integration}
+              value={null}
+              label="Select Repository"
+              onChange={() => {}}
             />
           )}
           {integration.integration_detail.provider === "slack" && <SelectChannel integration={integration} />}

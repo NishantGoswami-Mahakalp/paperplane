@@ -6,6 +6,7 @@
 
 export * from "./github-importer";
 export * from "./jira-importer";
+export * from "./forgejo-importer";
 
 import type { IProjectLite } from "../project";
 // types
