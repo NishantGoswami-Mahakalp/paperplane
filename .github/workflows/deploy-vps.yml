@@ -141,7 +141,17 @@ jobs:
             
             cd deploy/vps
             
-            # Kill any existing containers using the ports
+            # Check what's using port 80
+            PORT_80=$(ss -tlnp 2>/dev/null | grep ':80 ' || netstat -tlnp 2>/dev/null | grep ':80 ' || true)
+            if [ -n "$PORT_80" ]; then
+              echo "Port 80 is already in use:"
+              echo "$PORT_80"
+              echo "Stopping existing containers..."
+              docker stop $(docker ps -q) 2>/dev/null || true
+              docker rm -f $(docker ps -aq) 2>/dev/null || true
+            fi
+            
+            # Remove any orphaned containers
             docker compose down --remove-orphans 2>/dev/null || true
             
             # Create env files from templates (they're gitignored)
