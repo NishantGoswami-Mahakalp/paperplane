@@ -1,18 +1,18 @@
 services:
   web:
-    image: ghcr.io/nishantgoswami-mahakalp/paperplane:latest-web
+    image: ghcr.io/nishantgoswami-mahakalp/paperplane-web:latest
     restart: always
 
   admin:
-    image: ghcr.io/nishantgoswami-mahakalp/paperplane:latest-admin
+    image: ghcr.io/nishantgoswami-mahakalp/paperplane-admin:latest
     restart: always
 
   space:
-    image: ghcr.io/nishantgoswami-mahakalp/paperplane:latest-space
+    image: ghcr.io/nishantgoswami-mahakalp/paperplane-space:latest
     restart: always
 
   api:
-    image: ghcr.io/nishantgoswami-mahakalp/paperplane:latest-api
+    image: ghcr.io/nishantgoswami-mahakalp/paperplane-api:latest
     restart: always
     command: ./bin/docker-entrypoint-api.sh
     env_file:
@@ -22,25 +22,15 @@ services:
       - plane-redis
 
   worker:
-    image: ghcr.io/nishantgoswami-mahakalp/paperplane:latest-api
+    image: ghcr.io/nishantgoswami-mahakalp/paperplane-api:latest
     restart: always
-    command: ./bin/docker-entrypoint-worker.sh
-    env_file:
-      - ./apps/api/.env
-    depends_on:
-      - api
 
   beat-worker:
-    image: ghcr.io/nishantgoswami-mahakalp/paperplane:latest-api
+    image: ghcr.io/nishantgoswami-mahakalp/paperplane-api:latest
     restart: always
-    command: ./bin/docker-entrypoint-beat.sh
-    env_file:
-      - ./apps/api/.env
-    depends_on:
-      - api
 
   migrator:
-    image: ghcr.io/nishantgoswami-mahakalp/paperplane:latest-api
+    image: ghcr.io/nishantgoswami-mahakalp/paperplane-api:latest
     restart: "no"
     command: ./bin/docker-entrypoint-migrator.sh
     env_file:
@@ -49,7 +39,7 @@ services:
       - plane-db
 
   live:
-    image: ghcr.io/nishantgoswami-mahakalp/paperplane:latest-live
+    image: ghcr.io/nishantgoswami-mahakalp/paperplane-live:latest
     restart: always
 
   plane-db:
@@ -95,7 +85,7 @@ services:
       MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY}
 
   proxy:
-    image: ghcr.io/nishantgoswami-mahakalp/paperplane:latest-proxy
+    image: ghcr.io/nishantgoswami-mahakalp/paperplane-proxy:latest
     restart: always
     ports:
       - ${LISTEN_HTTP_PORT}:80
