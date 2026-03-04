@@ -5,9 +5,19 @@ on:
     branches:
       - preview
   workflow_dispatch:
+    inputs:
+      skip_build:
+        description: 'Skip build and only deploy'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 jobs:
   build-and-push:
+    if: ${{ github.event.inputs.skip_build != 'true' }}
     runs-on: ubuntu-latest
 
     steps:
