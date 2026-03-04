@@ -6,7 +6,7 @@
 import requests
 
 # Django imports
-from django.conf import settings
+from django.db import transaction
 
 # Third party imports
 from rest_framework import status
@@ -14,9 +14,197 @@ from rest_framework.response import Response
 
 # Module imports
 from plane.app.permissions import ROLE, allow_permission
-from plane.app.serializers import ProjectLiteSerializer
 from plane.app.views.base import BaseAPIView
-from plane.db.models import Project, Workspace, WorkspaceIntegration, ForgejoRepository, ForgejoRepositorySync
+from plane.db.models import (
+    Project,
+    Workspace,
+    WorkspaceIntegration,
+    ForgejoRepository,
+    ForgejoRepositorySync,
+    ForgejoIssueSync,
+    Issue,
+    IssueComment,
+    Label,
+    State,
+    StateGroup,
+    ProjectMember,
+)
+
+
+def get_headers(api_token):
+    return {
+        "Authorization": f"token {api_token}",
+        "Content-Type": "application/json",
+    }
+
+
+def get_or_create_label(project, name, color):
+    label, _ = Label.objects.get_or_create(
+        name=name,
+        project=project,
+        defaults={"color": color},
+    )
+    return label
+
+
+def get_state_mapping(project, forgejo_state):
+    state_mapping = {
+        "open": StateGroup.UNSTARTED.value,
+        "closed": StateGroup.COMPLETED.value,
+    }
+    group = state_mapping.get(forgejo_state, StateGroup.BACKLOG.value)
+    state = State.objects.filter(project=project, group=group).first()
+    if not state:
+        state = State.objects.filter(project=project, group=StateGroup.BACKLOG.value).first()
+    return state
+
+
+def import_forgejo_issues(
+    project,
+    workspace,
+    actor,
+    base_url,
+    api_token,
+    repository_full_name,
+    import_labels=True,
+    import_issues=True,
+):
+    headers = get_headers(api_token)
+
+    response = requests.get(
+        f"{base_url}/api/v1/repos/{repository_full_name}/issues",
+        headers=headers,
+        params={"state": "all", "limit": 100},
+    )
+    response.raise_for_status()
+    forgejo_issues = response.json()
+
+    response = requests.get(
+        f"{base_url}/api/v1/repos/{repository_full_name}/labels",
+        headers=headers,
+    )
+    response.raise_for_status()
+    forgejo_labels = response.json()
+
+    response = requests.get(
+        f"{base_url}/api/v1/repos/{repository_full_name}/collaborators",
+        headers=headers,
+    )
+    response.raise_for_status()
+    collaborators = response.json()
+
+    collaborator_map = {collab.get("login"): collab for collab in collaborators}
+    label_map = {}
+    if import_labels:
+        for fglabel in forgejo_labels:
+            label = get_or_create_label(
+                project=project,
+                name=fglabel.get("name"),
+                color=fglabel.get("color", "#666666"),
+            )
+            label_map[fglabel.get("id")] = label
+
+    created_issues = []
+    for fgissue in forgejo_issues:
+        issue_labels = []
+        for fg_label in fgissue.get("labels", []):
+            label_id = fg_label.get("id")
+            if label_id in label_map:
+                issue_labels.append(label_map[label_id])
+
+        state = get_state_mapping(project, fgissue.get("state"))
+
+        assignee = fgissue.get("assignee")
+        assignee_id = None
+        if assignee:
+            collab_info = collaborator_map.get(assignee.get("login"))
+            if collab_info:
+                email = collab_info.get("email")
+                if email:
+                    member = (
+                        ProjectMember.objects.filter(
+                            project=project,
+                            member__email=email,
+                            is_active=True,
+                        )
+                        .select_related("member")
+                        .first()
+                    )
+                    if member:
+                        assignee_id = member.member_id
+
+        with transaction.atomic():
+            issue = Issue.objects.create(
+                name=fgissue.get("title", "Untitled"),
+                description=fgissue.get("body", ""),
+                project=project,
+                workspace=workspace,
+                state=state,
+                created_by=actor,
+                updated_by=actor,
+            )
+
+            for label in issue_labels:
+                from plane.db.models import IssueLabel
+
+                IssueLabel.objects.create(
+                    issue=issue,
+                    project=project,
+                    workspace=workspace,
+                    label=label,
+                    created_by=actor,
+                    updated_by=actor,
+                )
+
+            if assignee_id:
+                from plane.db.models import IssueAssignee
+
+                IssueAssignee.objects.create(
+                    issue=issue,
+                    project=project,
+                    workspace=workspace,
+                    assignee_id=assignee_id,
+                    created_by=actor,
+                    updated_by=actor,
+                )
+
+            created_issues.append((fgissue, issue))
+
+    return created_issues
+
+
+def import_forgejo_comments(
+    project,
+    workspace,
+    actor,
+    base_url,
+    api_token,
+    repository_full_name,
+    issue_syncs,
+):
+    headers = get_headers(api_token)
+
+    for fg_issue, issue in issue_syncs:
+        try:
+            response = requests.get(
+                f"{base_url}/api/v1/repos/{repository_full_name}/issues/{fg_issue.get('number')}/comments",
+                headers=headers,
+                params={"limit": 100},
+            )
+            response.raise_for_status()
+            comments = response.json()
+
+            for fg_comment in comments:
+                comment = IssueComment.objects.create(
+                    issue=issue,
+                    project=project,
+                    workspace=workspace,
+                    comment_text=fg_comment.get("body", ""),
+                    created_by=actor,
+                    updated_by=actor,
+                )
+        except requests.RequestException:
+            pass
 
 
 class ForgejoRepositoriesEndpoint(BaseAPIView):
@@ -199,6 +387,7 @@ class ForgejoImporterCreateEndpoint(BaseAPIView):
         workspace_integration_id = request.data.get("workspace_integration_id")
         import_issues = request.data.get("import_issues", True)
         import_labels = request.data.get("import_labels", True)
+        import_comments = request.data.get("import_comments", True)
 
         if not repository_id or not repository_full_name or not workspace_integration_id:
             return Response(
@@ -268,6 +457,51 @@ class ForgejoImporterCreateEndpoint(BaseAPIView):
             workspace=workspace,
         )
 
+        imported_issues_count = 0
+        imported_comments_count = 0
+
+        if import_issues:
+            try:
+                created_issues = import_forgejo_issues(
+                    project=project,
+                    workspace=workspace,
+                    actor=request.user,
+                    base_url=base_url,
+                    api_token=api_token,
+                    repository_full_name=repository_full_name,
+                    import_labels=import_labels,
+                    import_issues=import_issues,
+                )
+                imported_issues_count = len(created_issues)
+
+                for fg_issue, issue in created_issues:
+                    ForgejoIssueSync.objects.create(
+                        repo_issue_id=fg_issue.get("id"),
+                        forgejo_issue_id=fg_issue.get("id"),
+                        issue_url=f"{base_url}/{repository_full_name}/issues/{fg_issue.get('number')}",
+                        issue=issue,
+                        repository_sync=forgejo_sync,
+                    )
+
+                if import_comments:
+                    import_forgejo_comments(
+                        project=project,
+                        workspace=workspace,
+                        actor=request.user,
+                        base_url=base_url,
+                        api_token=api_token,
+                        repository_full_name=repository_full_name,
+                        issue_syncs=created_issues,
+                    )
+                    imported_comments_count = sum(
+                        IssueComment.objects.filter(issue=issue).count() for _, issue in created_issues
+                    )
+            except Exception as e:
+                return Response(
+                    {"error": f"Failed to import issues: {str(e)}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         return Response(
             {
                 "id": str(forgejo_repository.id),
@@ -277,6 +511,8 @@ class ForgejoImporterCreateEndpoint(BaseAPIView):
                 "sync_id": str(forgejo_sync.id),
                 "import_issues": import_issues,
                 "import_labels": import_labels,
+                "imported_issues_count": imported_issues_count,
+                "imported_comments_count": imported_comments_count,
             },
             status=status.HTTP_201_CREATED,
         )
