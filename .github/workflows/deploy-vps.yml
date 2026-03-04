@@ -141,6 +141,9 @@ jobs:
             
             cd deploy/vps
             
+            # Kill any existing containers using the ports
+            docker compose down --remove-orphans 2>/dev/null || true
+            
             # Create env files from templates (they're gitignored)
             if [ ! -f .env ]; then
               echo "POSTGRES_USER=plane" > .env
