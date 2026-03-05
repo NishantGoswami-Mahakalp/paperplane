@@ -66,4 +66,4 @@ class CustomerSerializer(BaseSerializer):
 class CustomerLiteSerializer(BaseSerializer):
     class Meta:
         model = Customer
-        fields = ["id", "name", "email", "company"]
+        fields = ["id", "name", "email"]

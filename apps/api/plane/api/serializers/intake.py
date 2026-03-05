@@ -5,6 +5,7 @@
 # Module imports
 from .base import BaseSerializer
 from .issue import IssueExpandSerializer
+from .customer import CustomerLiteSerializer
 from plane.db.models import IntakeIssue, Issue, State, StateGroup
 from rest_framework import serializers
 
@@ -64,6 +65,7 @@ class IntakeIssueSerializer(BaseSerializer):
 
     issue_detail = IssueExpandSerializer(read_only=True, source="issue")
     inbox = serializers.UUIDField(source="intake.id", read_only=True)
+    customer_detail = CustomerLiteSerializer(read_only=True, source="customer")
 
     class Meta:
         model = IntakeIssue
@@ -99,6 +101,7 @@ class IntakeIssueUpdateSerializer(BaseSerializer):
             "source",
             "source_email",
             "issue",
+            "customer",
         ]
         read_only_fields = [
             "id",

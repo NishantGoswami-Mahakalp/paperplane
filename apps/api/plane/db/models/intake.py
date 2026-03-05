@@ -56,6 +56,13 @@ class IntakeIssueStatus(models.IntegerChoices):
 class IntakeIssue(ProjectBaseModel):
     intake = models.ForeignKey("db.Intake", related_name="issue_intake", on_delete=models.CASCADE)
     issue = models.ForeignKey("db.Issue", related_name="issue_intake", on_delete=models.CASCADE)
+    customer = models.ForeignKey(
+        "db.Customer",
+        related_name="intake_issues",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     status = models.IntegerField(
         choices=(
             (-2, "Pending"),

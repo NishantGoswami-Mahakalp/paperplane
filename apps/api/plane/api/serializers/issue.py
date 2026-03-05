@@ -36,6 +36,7 @@ from .cycle import CycleLiteSerializer, CycleSerializer
 from .module import ModuleLiteSerializer, ModuleSerializer
 from .state import StateLiteSerializer
 from .user import UserLiteSerializer
+from .customer import CustomerLiteSerializer
 
 # Django imports
 from django.core.exceptions import ValidationError
@@ -646,6 +647,7 @@ class IssueExpandSerializer(BaseSerializer):
 
     cycle = CycleLiteSerializer(source="issue_cycle.cycle", read_only=True)
     module = ModuleLiteSerializer(source="issue_module.module", read_only=True)
+    customer_detail = CustomerLiteSerializer(source="customer", read_only=True)
 
     labels = serializers.SerializerMethodField()
     assignees = serializers.SerializerMethodField()
