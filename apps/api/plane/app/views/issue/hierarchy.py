@@ -21,6 +21,7 @@ from plane.app.permissions import ProjectEntityPermission
 from plane.db.models import IssueHierarchyLink, Issue, Project
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.utils.host import base_host
+from plane.utils.issue_rollup import calculate_issue_rollups
 
 
 class IssueHierarchyLinkViewSet(BaseViewSet):
