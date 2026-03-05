@@ -78,6 +78,15 @@ class IntakeIssueSerializer(BaseSerializer):
                     workspace=instance.workspace, project=instance.project, default=True
                 ).first()
                 if default_state:
+                    # Validate workflow transition
+                    from plane.utils.workflow_evaluator import WorkflowEvaluator, WorkflowTransitionError
+
+                    evaluator = WorkflowEvaluator(issue)
+                    try:
+                        evaluator.validate_transition(issue.state, default_state)
+                    except WorkflowTransitionError as e:
+                        raise serializers.ValidationError({"workflow": e.message})
+
                     issue.state = default_state
                     issue.save()
 

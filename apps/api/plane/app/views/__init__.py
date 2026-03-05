@@ -154,6 +154,15 @@ from .issue.subscriber import IssueSubscriberViewSet
 
 from .issue.version import IssueVersionEndpoint, WorkItemDescriptionVersionEndpoint
 
+from .approval.base import (
+    ApprovalPolicyViewSet,
+    ApprovalDecisionViewSet,
+    ApprovalRequestEndpoint,
+    ApprovalApproveEndpoint,
+    ApprovalRejectEndpoint,
+    ApprovalReassignEndpoint,
+)
+
 from .module.base import (
     ModuleViewSet,
     ModuleLinkViewSet,

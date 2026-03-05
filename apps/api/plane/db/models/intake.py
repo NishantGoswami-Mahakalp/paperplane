@@ -13,8 +13,12 @@ class Intake(ProjectBaseModel):
     name = models.CharField(max_length=255)
     description = models.TextField(verbose_name="Intake Description", blank=True)
     is_default = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
     view_props = models.JSONField(default=dict)
     logo_props = models.JSONField(default=dict)
+    field_config_json = models.JSONField(default=list, verbose_name="Form Field Configuration")
+    captcha_enabled = models.BooleanField(default=False, verbose_name="Enable Captcha")
+    rate_limit = models.CharField(max_length=20, default="10/minute", verbose_name="Rate Limit (e.g., 10/minute)")
 
     def __str__(self):
         """Return name of the intake"""
@@ -37,6 +41,8 @@ class Intake(ProjectBaseModel):
 
 class SourceType(models.TextChoices):
     IN_APP = "IN_APP"
+    PUBLIC_FORM = "PUBLIC_FORM"
+    EMAIL = "EMAIL"
 
 
 class IntakeIssueStatus(models.IntegerChoices):

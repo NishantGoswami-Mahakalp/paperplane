@@ -133,3 +133,14 @@ from .draft import (
     DraftIssueSerializer,
     DraftIssueDetailSerializer,
 )
+
+from .approval import (
+    ApprovalPolicySerializer,
+    ApprovalPolicyApproverSerializer,
+    ApprovalDecisionSerializer,
+    ApprovalDecisionLiteSerializer,
+    ApprovalPolicyLiteSerializer,
+    ApprovalApproveSerializer,
+    ApprovalRejectSerializer,
+    ApprovalReassignSerializer,
+)
