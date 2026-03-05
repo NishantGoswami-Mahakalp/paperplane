@@ -84,6 +84,7 @@ from .template import (
     PageTemplateInstantiateAPIEndpoint,
     TemplateListCreateAPIEndpoint,
     TemplateDetailAPIEndpoint,
+    TemplateVersionListAPIEndpoint,
 )
 
 from .customer import (
