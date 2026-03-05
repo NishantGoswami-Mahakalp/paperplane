@@ -4,10 +4,12 @@
  * See the LICENSE file for details.
  */
 
-import { useTranslation } from "react-i18next";
 import { observer } from "mobx-react";
+// plane imports
+import { useTranslation } from "@plane/i18n";
+import { Breadcrumbs } from "@plane/ui";
 // components
-import { Breadcrumbs } from "@/components/breadcrumbs";
+import { BreadcrumbLink } from "@/components/common/breadcrumb-link";
 // hooks
 import { useWorkspace } from "@/hooks/store";
 
@@ -15,20 +17,26 @@ export const CustomersHeader = observer(() => {
   const { t } = useTranslation();
   const { currentWorkspace } = useWorkspace();
 
-  const breadcrumbs = [
-    {
-      title: t("workspace"),
-      href: `/${currentWorkspace?.slug}/`,
-    },
-    {
-      title: t("customers"),
-      href: `/${currentWorkspace?.slug}/customers`,
-    },
-  ];
-
   return (
     <div className="relative flex w-full flex-shrink-0 items-center justify-between gap-2 overflow-hidden py-2">
-      <Breadcrumbs breadcrumbs={breadcrumbs} />
+      <Breadcrumbs>
+        <Breadcrumbs.Item
+          component={
+            <BreadcrumbLink
+              label={t("workspace")}
+              href={`/${currentWorkspace?.slug}/`}
+            />
+          }
+        />
+        <Breadcrumbs.Item
+          component={
+            <BreadcrumbLink
+              label={t("customers")}
+              href={`/${currentWorkspace?.slug}/customers`}
+            />
+          }
+        />
+      </Breadcrumbs>
     </div>
   );
 });
