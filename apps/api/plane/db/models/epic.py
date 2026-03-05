@@ -163,7 +163,7 @@ class EpicMember(ProjectBaseModel):
 
 
 class EpicIssue(ProjectBaseModel):
-    epic = models.ForeignKey("db.Epic", on_delete=models.CASCADE, related_name="epic_issues")
+    epic = models.ForeignKey("db.Epic", on_delete=models.CASCADE, related_name="epic_issue_items")
     issue = models.ForeignKey("db.Issue", on_delete=models.CASCADE, related_name="issue_epic")
 
     class Meta:

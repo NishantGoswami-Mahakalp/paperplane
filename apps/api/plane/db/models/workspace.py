@@ -328,7 +328,7 @@ class TeamspaceMember(BaseModel):
 
 
 class TeamspaceProject(BaseModel):
-    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="teamspace_projects")
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="teamspace_link_items")
     project = models.ForeignKey("db.Project", on_delete=models.CASCADE, related_name="teamspace_links")
 
     class Meta:

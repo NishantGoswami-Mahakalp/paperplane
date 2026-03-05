@@ -41,6 +41,7 @@ class ApprovalPolicy(BaseModel):
     approvers = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         through="ApprovalPolicyApprover",
+        through_fields=("policy", "approver"),
         related_name="approval_policies",
         blank=True,
     )
@@ -163,7 +164,7 @@ class ApprovalDecision(BaseModel):
         db_table = "approval_decisions"
         ordering = ("order", "created_at")
         indexes = [
-            models.Index(fields=["policy", "item_id"], name="approval_decision_policy_item_idx"),
+            models.Index(fields=["policy", "item_id"], name="app_dcn_pcy_itm_idx"),
         ]
         unique_together = ["policy", "item_id", "approver", "deleted_at"]
         constraints = [
