@@ -23,6 +23,10 @@ from .issue import (
     IssueActivityPublicEndpoint,
 )
 
+from .page import (
+    PageRetrievePublicEndpoint,
+)
+
 from .intake import (
     IntakeIssuePublicViewSet,
     IntakeFormSubmitEndpoint,
@@ -40,3 +44,5 @@ from .label import ProjectLabelsEndpoint
 from .asset import EntityAssetEndpoint, AssetRestoreEndpoint, EntityBulkAssetEndpoint
 
 from .meta import ProjectMetaDataEndpoint
+
+from .workspace import WorkspacePublicEndpoint
