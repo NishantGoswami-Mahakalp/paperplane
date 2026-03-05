@@ -21,6 +21,7 @@ export type TIssueGroupByOptions =
   | "assignees"
   | "cycle"
   | "module"
+  | "epic"
   | "target_date"
   | "team_project"
   | null;
@@ -71,6 +72,7 @@ export type TIssueParams =
   | "labels"
   | "cycle"
   | "module"
+  | "epic"
   | "start_date"
   | "target_date"
   | "project"
@@ -106,6 +108,7 @@ export const WORK_ITEM_FILTER_PROPERTY_KEYS = [
   "state_id",
   "cycle_id",
   "module_id",
+  "epic_id",
   "project_id",
   "created_at",
   "updated_at",
@@ -136,6 +139,7 @@ export interface IIssueFilterOptions {
   priority?: string[] | null;
   cycle?: string[] | null;
   module?: string[] | null;
+  epic?: string[] | null;
   project?: string[] | null;
   team_project?: string[] | null;
   start_date?: string[] | null;
@@ -174,6 +178,7 @@ export interface IIssueDisplayProperties {
   updated_on?: boolean;
   modules?: boolean;
   cycle?: boolean;
+  epic?: boolean;
   issue_type?: boolean;
 }
 

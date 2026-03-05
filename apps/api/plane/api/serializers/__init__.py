@@ -44,6 +44,21 @@ from .module import (
     ModuleCreateSerializer,
     ModuleUpdateSerializer,
 )
+from .epic import (
+    EpicSerializer,
+    EpicIssueSerializer,
+    EpicLiteSerializer,
+    EpicIssueRequestSerializer,
+    EpicCreateSerializer,
+    EpicUpdateSerializer,
+    EpicLinkSerializer,
+    InitiativeSerializer,
+    InitiativeEpicSerializer,
+    InitiativeLiteSerializer,
+    InitiativeCreateSerializer,
+    InitiativeUpdateSerializer,
+    InitiativeLinkSerializer,
+)
 from .intake import (
     IntakeIssueSerializer,
     IntakeIssueCreateSerializer,

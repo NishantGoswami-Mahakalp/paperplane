@@ -62,6 +62,7 @@ export type TBaseIssue = {
   parent_id: string | null;
   cycle_id: string | null;
   module_ids: string[] | null;
+  epic_id: string | null;
   type_id: string | null;
 
   created_at: string;
@@ -147,6 +148,7 @@ export type TBulkIssueProperties = Pick<
   | "target_date"
   | "module_ids"
   | "cycle_id"
+  | "epic_id"
   | "estimate_point"
 >;
 
@@ -176,6 +178,7 @@ export interface IPublicIssue extends Pick<
   | "target_date"
   | "cycle_id"
   | "module_ids"
+  | "epic_id"
   | "label_ids"
   | "assignee_ids"
   | "attachment_count"

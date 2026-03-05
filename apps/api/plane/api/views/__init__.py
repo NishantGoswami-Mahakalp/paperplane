@@ -48,6 +48,16 @@ from .module import (
     ModuleArchiveUnarchiveAPIEndpoint,
 )
 
+from .epic import (
+    InitiativeListCreateAPIEndpoint,
+    InitiativeDetailAPIEndpoint,
+    EpicListCreateAPIEndpoint,
+    EpicDetailAPIEndpoint,
+    EpicIssueListCreateAPIEndpoint,
+    EpicIssueDetailAPIEndpoint,
+    EpicArchiveUnarchiveAPIEndpoint,
+)
+
 from .member import ProjectMemberListCreateAPIEndpoint, ProjectMemberDetailAPIEndpoint, WorkspaceMemberAPIEndpoint
 
 from .intake import (

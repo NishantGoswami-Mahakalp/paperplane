@@ -166,6 +166,13 @@ class Issue(ProjectBaseModel):
         null=True,
         blank=True,
     )
+    epic = models.ForeignKey(
+        "db.Epic",
+        on_delete=models.SET_NULL,
+        related_name="epic_issues",
+        null=True,
+        blank=True,
+    )
     child_issues_count = models.PositiveIntegerField(default=0)
     completed_child_issues_count = models.PositiveIntegerField(default=0)
     child_issues_progress = models.FloatField(
