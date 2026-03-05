@@ -224,3 +224,46 @@ def issue_export_task(
         exporter_instance.save(update_fields=["status", "reason"])
         log_exception(e)
         return
+
+
+@shared_task
+def bulk_issue_update_task(
+    project_id: str,
+    issue_ids: List[str],
+    updates: dict,
+    actor_id: str,
+):
+    """
+    Background task to process bulk issue updates for large batches.
+    """
+    from plane.app.serializers import IssueDetailSerializer
+    from plane.bgtasks.issue_activities_task import issue_activity
+    from plane.utils.host import base_host
+
+    try:
+        issues = Issue.objects.filter(project_id=project_id, pk__in=issue_ids).select_related("state", "project")
+
+        update_fields = [field for field in ["state_id", "priority", "assignee_ids"] if field in updates]
+        issues_to_update = []
+
+        for issue in issues:
+            try:
+                current_data = IssueDetailSerializer(issue).data
+
+                if "state_id" in updates:
+                    issue.state_id = updates["state_id"]
+                if "priority" in updates:
+                    issue.priority = updates["priority"]
+
+                issues_to_update.append(issue)
+
+            except Exception as e:
+                log_exception(e)
+                continue
+
+        if issues_to_update:
+            Issue.objects.bulk_update(issues_to_update, update_fields, batch_size=100)
+
+    except Exception as e:
+        log_exception(e)
+        return

@@ -781,6 +781,196 @@ class BulkDeleteIssuesEndpoint(BaseAPIView):
             status=status.HTTP_200_OK,
         )
 
+    @allow_permission([ROLE.ADMIN])
+    def post(self, request, slug, project_id):
+        issue_ids = request.data.get("issue_ids", [])
+
+        if not len(issue_ids):
+            return Response({"error": "Issue IDs are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        issues = Issue.issue_objects.filter(workspace__slug=slug, project_id=project_id, pk__in=issue_ids)
+
+        total_issues = len(issues)
+
+        # First, delete all related cycle issues
+        CycleIssue.objects.filter(issue_id__in=issue_ids).delete()
+
+        # Then, delete all related module issues
+        ModuleIssue.objects.filter(issue_id__in=issue_ids).delete()
+
+        # Finally, delete the issues themselves
+        issues.delete()
+
+        return Response(
+            {"message": f"{total_issues} issues were deleted"},
+            status=status.HTTP_200_OK,
+        )
+
+
+class BulkUpdateIssuesEndpoint(BaseAPIView):
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    def post(self, request, slug, project_id):
+        issue_ids = request.data.get("issue_ids", [])
+        updates = request.data.get("updates", {})
+
+        if not len(issue_ids):
+            return Response({"error": "Issue IDs are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not updates:
+            return Response({"error": "Updates are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get all issues
+        issues = Issue.objects.filter(workspace__slug=slug, project_id=project_id, pk__in=issue_ids).select_related(
+            "state", "project"
+        )
+
+        found_issue_ids = set(str(issue.id) for issue in issues)
+        requested_issue_ids = set(str(id) for id in issue_ids)
+
+        # Track conflicts
+        missing_issues = requested_issue_ids - found_issue_ids
+        processed_issues = []
+        failed_issues = []
+        epoch = int(timezone.now().timestamp())
+
+        # Fields that can be updated
+        allowed_fields = ["state_id", "priority", "assignee_ids"]
+        update_fields = [field for field in allowed_fields if field in updates]
+
+        if not update_fields:
+            return Response(
+                {"error": "No valid fields to update. Allowed fields: state_id, priority, assignee_ids"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Check for state_id validity if provided
+        state_id = updates.get("state_id")
+        if state_id:
+            from plane.db.models import State
+
+            valid_state = State.objects.filter(project_id=project_id, pk=state_id).exists()
+            if not valid_state:
+                return Response(
+                    {"error": f"Invalid state_id: {state_id}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Check for priority validity if provided
+        priority = updates.get("priority")
+        if priority:
+            valid_priorities = [0, 1, 2, 3, 4, 5, 6]
+            if priority not in valid_priorities:
+                return Response(
+                    {"error": f"Invalid priority: {priority}. Must be one of {valid_priorities}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Handle assignee_ids separately since it's a many-to-many field
+        assignee_ids = updates.get("assignee_ids")
+        if assignee_ids:
+            from plane.db.models import User
+
+            valid_assignees = User.objects.filter(pk__in=assignee_ids).values_list("id", flat=True)
+            valid_assignee_ids = set(str(id) for id in valid_assignees)
+            requested_assignee_ids = set(str(id) for id in assignee_ids)
+
+            invalid_assignees = requested_assignee_ids - valid_assignee_ids
+            if invalid_assignees:
+                return Response(
+                    {"error": f"Invalid assignee_ids: {list(invalid_assignees)}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Separate fields that can be bulk updated from many-to-many fields
+        bulk_update_fields = [field for field in ["state_id", "priority"] if field in updates]
+        has_assignee_update = "assignee_ids" in updates
+
+        if not bulk_update_fields and not has_assignee_update:
+            return Response(
+                {"error": "No valid fields to update. Allowed fields: state_id, priority, assignee_ids"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Process each issue
+        issues_to_update = []
+        assignee_updates = []
+        for issue in issues:
+            try:
+                current_data = IssueDetailSerializer(issue).data
+
+                # Update state_id
+                if "state_id" in updates:
+                    issue.state_id = updates["state_id"]
+
+                # Update priority
+                if "priority" in updates:
+                    issue.priority = updates["priority"]
+
+                issues_to_update.append(issue)
+                processed_issues.append(str(issue.id))
+
+                if has_assignee_update:
+                    assignee_updates.append((str(issue.id), assignee_ids))
+
+                # Create activity log for each issue
+                issue_activity.delay(
+                    type="issue.activity.updated",
+                    requested_data=json.dumps(updates, cls=DjangoJSONEncoder),
+                    actor_id=str(request.user.id),
+                    issue_id=str(issue.id),
+                    project_id=str(project_id),
+                    current_instance=json.dumps(current_data, cls=DjangoJSONEncoder),
+                    epoch=epoch,
+                    notification=True,
+                    origin=base_host(request=request, is_app=True),
+                )
+            except Exception as e:
+                failed_issues.append({"issue_id": str(issue.id), "error": str(e)})
+
+        # Perform bulk update for simple fields
+        if issues_to_update and bulk_update_fields:
+            Issue.objects.bulk_update(issues_to_update, bulk_update_fields, batch_size=100)
+
+        # Handle assignee updates (many-to-many)
+        if assignee_updates:
+            from plane.db.models import IssueAssignee
+
+            for issue_id, assignees in assignee_updates:
+                IssueAssignee.objects.filter(issue_id=issue_id).delete()
+                issue_assignees = [
+                    IssueAssignee(issue_id=issue_id, assignee_id=assignee_id) for assignee_id in assignees
+                ]
+                IssueAssignee.objects.bulk_create(issue_assignees, ignore_conflicts=True)
+
+        # Handle background processing for large batches
+        total_count = len(issue_ids)
+        if total_count > 50:
+            from plane.bgtasks.export_task import bulk_issue_update_task
+
+            bulk_issue_update_task.delay(
+                project_id=str(project_id),
+                issue_ids=[str(id) for id in issue_ids],
+                updates=updates,
+                actor_id=str(request.user.id),
+            )
+
+        # Build response with partial success details
+        response_data = {
+            "status": "success" if not failed_issues else "partial_success",
+            "total_requested": total_count,
+            "processed_count": len(processed_issues),
+            "failed_count": len(failed_issues),
+            "processed_issues": processed_issues,
+            "failed_issues": failed_issues,
+        }
+
+        if missing_issues:
+            response_data["missing_issues"] = list(missing_issues)
+
+        status_code = status.HTTP_200_OK if not failed_issues else status.HTTP_207_MULTI_STATUS
+
+        return Response(response_data, status=status_code)
+
 
 class DeletedIssuesListViewSet(BaseAPIView):
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])

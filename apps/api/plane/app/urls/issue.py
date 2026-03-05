@@ -7,6 +7,7 @@ from django.urls import path
 from plane.app.views import (
     BulkCreateIssueLabelsEndpoint,
     BulkDeleteIssuesEndpoint,
+    BulkUpdateIssuesEndpoint,
     SubIssuesEndpoint,
     IssueLinkViewSet,
     IssueAttachmentEndpoint,
@@ -90,6 +91,16 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/bulk-create-labels/",
         BulkCreateIssueLabelsEndpoint.as_view(),
         name="project-bulk-labels",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/bulk-delete/",
+        BulkDeleteIssuesEndpoint.as_view(),
+        name="project-issues-bulk-delete",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/bulk-update/",
+        BulkUpdateIssuesEndpoint.as_view(),
+        name="project-issues-bulk-update",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/bulk-delete-issues/",
