@@ -11,6 +11,12 @@ from plane.api.views import (
     PageTemplateListCreateAPIEndpoint,
     PageTemplateDetailAPIEndpoint,
     PageTemplateInstantiateAPIEndpoint,
+    TemplateListCreateAPIEndpoint,
+    TemplateDetailAPIEndpoint,
+    TemplateVersionListAPIEndpoint,
+    TemplateVersionRestoreAPIEndpoint,
+    TemplateExportAPIEndpoint,
+    TemplateImportAPIEndpoint,
 )
 
 
@@ -46,5 +52,36 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/page-templates/<uuid:template_id>/instantiate/",
         PageTemplateInstantiateAPIEndpoint.as_view(http_method_names=["post"]),
         name="page-template-instantiate",
+    ),
+    # New Versioned Template URLs
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/templates/",
+        TemplateListCreateAPIEndpoint.as_view(http_method_names=["get", "post"]),
+        name="template-list",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/templates/<uuid:template_id>/",
+        TemplateDetailAPIEndpoint.as_view(http_method_names=["get", "patch", "delete"]),
+        name="template-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/templates/<uuid:template_id>/versions/",
+        TemplateVersionListAPIEndpoint.as_view(http_method_names=["get"]),
+        name="template-version-list",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/templates/<uuid:template_id>/versions/<uuid:version_id>/restore/",
+        TemplateVersionRestoreAPIEndpoint.as_view(http_method_names=["post"]),
+        name="template-version-restore",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/templates/<uuid:template_id>/export/",
+        TemplateExportAPIEndpoint.as_view(http_method_names=["get"]),
+        name="template-export",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/templates/import/",
+        TemplateImportAPIEndpoint.as_view(http_method_names=["post"]),
+        name="template-import",
     ),
 ]

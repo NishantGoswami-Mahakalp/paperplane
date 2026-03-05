@@ -4,10 +4,141 @@
 
 from rest_framework import serializers
 
-from plane.db.models import IssueTemplate, PageTemplate
+from plane.db.models import IssueTemplate, PageTemplate, Template, TemplateField, TemplateVersion
 from plane.api.serializers.base import BaseSerializer
 from plane.api.serializers.user import UserLiteSerializer
 from plane.api.serializers.state import StateLiteSerializer
+
+
+class TemplateFieldSerializer(BaseSerializer):
+    class Meta:
+        model = TemplateField
+        read_only_fields = ["id", "created_by", "updated_by"]
+        exclude = []
+
+
+class TemplateFieldCreateSerializer(BaseSerializer):
+    name = serializers.CharField(required=True, max_length=255)
+    field_type = serializers.ChoiceField(choices=TemplateField.FIELD_TYPES)
+    description = serializers.CharField(required=False, default="", allow_blank=True)
+    default_value = serializers.JSONField(required=False, default=dict)
+    options = serializers.ListField(required=False, default=list)
+    is_required = serializers.BooleanField(required=False, default=False)
+    sort_order = serializers.IntegerField(required=False, default=0)
+
+    class Meta:
+        model = TemplateField
+        read_only_fields = ["id", "created_by", "updated_by"]
+
+
+class TemplateVersionSerializer(BaseSerializer):
+    class Meta:
+        model = TemplateVersion
+        read_only_fields = ["id", "created_by", "updated_by"]
+        exclude = []
+
+
+class TemplateSerializer(BaseSerializer):
+    fields = TemplateFieldSerializer(many=True, read_only=True)
+    current_version = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Template
+        read_only_fields = ["id", "workspace", "project", "created_by", "updated_by"]
+        exclude = []
+
+    def get_current_version(self, obj):
+        latest = obj.versions.first()
+        return latest.version if latest else None
+
+
+class TemplateCreateSerializer(BaseSerializer):
+    name = serializers.CharField(required=True, max_length=255)
+    description = serializers.CharField(required=False, default="", allow_blank=True)
+    entity_type = serializers.ChoiceField(choices=Template.TemplateType.CHOICES, default="work_item")
+    schema_version = serializers.IntegerField(required=False, default=1)
+    is_active = serializers.BooleanField(required=False, default=True)
+    project_id = serializers.UUIDField(required=False, allow_null=True)
+    fields = TemplateFieldCreateSerializer(many=True, required=False, default=list)
+
+    class Meta:
+        model = Template
+        read_only_fields = ["id", "workspace", "created_by", "updated_by"]
+
+    def create(self, validated_data):
+        fields_data = validated_data.pop("fields", [])
+        workspace_id = validated_data.get("workspace_id")
+
+        template = Template.objects.create(
+            workspace_id=workspace_id,
+            **validated_data,
+        )
+
+        for idx, field_data in enumerate(fields_data):
+            field_data["sort_order"] = field_data.get("sort_order", idx)
+            TemplateField.objects.create(template=template, **field_data)
+
+        if fields_data:
+            TemplateVersion.create_version(template, "Initial version")
+
+        return template
+
+    def update(self, instance, validated_data):
+        fields_data = validated_data.pop("fields", None)
+        create_version = validated_data.pop("create_version", False)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if fields_data is not None:
+            existing_fields = {f.id: f for f in instance.fields.all()}
+            incoming_field_ids = set()
+
+            for idx, field_data in enumerate(fields_data):
+                field_id = field_data.get("id")
+                field_data["sort_order"] = field_data.get("sort_order", idx)
+
+                if field_id and str(field_id) in existing_fields:
+                    field = existing_fields.pop(str(field_id))
+                    for attr, value in field_data.items():
+                        setattr(field, attr, value)
+                    field.save()
+                    incoming_field_ids.add(field.id)
+                else:
+                    new_field = TemplateField.objects.create(template=instance, **field_data)
+                    incoming_field_ids.add(new_field.id)
+
+            for field in existing_fields.values():
+                field.delete()
+
+        if create_version or fields_data is not None:
+            TemplateVersion.create_version(instance, validated_data.get("change_summary", ""))
+
+        return instance
+
+
+class TemplateDetailSerializer(BaseSerializer):
+    fields = TemplateFieldSerializer(many=True)
+    versions = TemplateVersionSerializer(many=True, read_only=True)
+    current_version = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Template
+        read_only_fields = ["id", "workspace", "project", "created_by", "updated_by"]
+
+    def get_current_version(self, obj):
+        latest = obj.versions.first()
+        return TemplateVersionSerializer(latest).data if latest else None
+
+
+class TemplateExportSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    description = serializers.CharField()
+    entity_type = serializers.CharField()
+    schema_version = serializers.IntegerField()
+    fields = TemplateFieldSerializer(many=True)
+    exported_at = serializers.DateTimeField(read_only=True)
 
 
 class IssueTemplateSerializer(BaseSerializer):

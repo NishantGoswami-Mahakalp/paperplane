@@ -20,6 +20,126 @@ class TemplateType:
     ]
 
 
+class Template(BaseModel):
+    workspace = models.ForeignKey(
+        "db.Workspace",
+        on_delete=models.CASCADE,
+        related_name="templates",
+    )
+    project = models.ForeignKey(
+        "db.Project",
+        on_delete=models.CASCADE,
+        related_name="templates",
+        null=True,
+        blank=True,
+    )
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    entity_type = models.CharField(
+        max_length=30,
+        choices=TemplateType.CHOICES,
+        default=TemplateType.WORK_ITEM,
+    )
+    schema_version = models.PositiveIntegerField(default=1)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Template"
+        verbose_name_plural = "Templates"
+        db_table = "templates"
+        ordering = ("-created_at",)
+        unique_together = ["workspace", "project", "name", "entity_type"]
+
+    def __str__(self):
+        return f"{self.name} ({self.entity_type})"
+
+
+class TemplateField(BaseModel):
+    FIELD_TYPES = [
+        ("text", "Text"),
+        ("number", "Number"),
+        ("date", "Date"),
+        ("select", "Select"),
+        ("multiselect", "MultiSelect"),
+        ("boolean", "Boolean"),
+        ("user", "User"),
+        ("url", "URL"),
+    ]
+
+    template = models.ForeignKey(
+        Template,
+        on_delete=models.CASCADE,
+        related_name="fields",
+    )
+    name = models.CharField(max_length=255)
+    field_type = models.CharField(max_length=30, choices=FIELD_TYPES)
+    description = models.TextField(blank=True)
+    default_value = models.JSONField(default=dict, blank=True)
+    options = models.JSONField(default=list, blank=True)
+    is_required = models.BooleanField(default=False)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Template Field"
+        verbose_name_plural = "Template Fields"
+        db_table = "template_fields"
+        ordering = ("sort_order",)
+
+    def __str__(self):
+        return f"{self.template.name} - {self.name}"
+
+
+class TemplateVersion(BaseModel):
+    template = models.ForeignKey(
+        Template,
+        on_delete=models.CASCADE,
+        related_name="versions",
+    )
+    version = models.PositiveIntegerField()
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    schema_version = models.PositiveIntegerField()
+    fields_snapshot = models.JSONField(default=list)
+    content_snapshot = models.JSONField(default=dict)
+    change_summary = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Template Version"
+        verbose_name_plural = "Template Versions"
+        db_table = "template_versions"
+        ordering = ("-version",)
+        unique_together = ["template", "version"]
+
+    def __str__(self):
+        return f"{self.template.name} v{self.version}"
+
+    @classmethod
+    def create_version(cls, template, change_summary=""):
+        fields = list(
+            template.fields.values(
+                "id", "name", "field_type", "description", "default_value", "options", "is_required", "sort_order"
+            )
+        )
+        content = {
+            "name": template.name,
+            "description": template.description,
+            "entity_type": template.entity_type,
+        }
+        last_version = template.versions.first()
+        new_version = (last_version.version + 1) if last_version else 1
+
+        return cls.objects.create(
+            template=template,
+            version=new_version,
+            name=template.name,
+            description=template.description,
+            schema_version=template.schema_version,
+            fields_snapshot=fields,
+            content_snapshot=content,
+            change_summary=change_summary,
+        )
+
+
 class IssueTemplate(BaseModel):
     PRIORITY_CHOICES = (
         ("urgent", "Urgent"),

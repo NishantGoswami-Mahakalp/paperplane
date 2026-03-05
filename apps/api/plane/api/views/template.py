@@ -2,11 +2,14 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+import json
+from django.utils import timezone
+
 from rest_framework import status
 from rest_framework.response import Response
 
 from plane.api.views.base import BaseAPIView
-from plane.db.models import IssueTemplate, PageTemplate, Issue, Page, Project
+from plane.db.models import IssueTemplate, PageTemplate, Issue, Page, Project, Template, TemplateField, TemplateVersion
 from plane.api.serializers import (
     IssueTemplateSerializer,
     IssueTemplateCreateSerializer,
@@ -17,6 +20,13 @@ from plane.api.serializers import (
     TemplateInstantiateSerializer,
     IssueSerializer,
     PageSerializer,
+    TemplateSerializer,
+    TemplateCreateSerializer,
+    TemplateDetailSerializer,
+    TemplateFieldSerializer,
+    TemplateFieldCreateSerializer,
+    TemplateVersionSerializer,
+    TemplateExportSerializer,
 )
 from plane.app.permissions import ProjectEntityPermission, ProjectMemberPermission, ProjectLitePermission
 
@@ -294,3 +304,204 @@ class PageTemplateInstantiateAPIEndpoint(BaseAPIView):
                 query = query.filter(projects__id=project_id)
 
         return name
+
+
+class TemplateListCreateAPIEndpoint(BaseAPIView):
+    """Template List and Create Endpoint"""
+
+    model = Template
+    serializer_class = TemplateSerializer
+    permission_classes = [ProjectMemberPermission]
+
+    def get_queryset(self):
+        return (
+            Template.objects.filter(
+                workspace__slug=self.kwargs.get("slug"),
+                project_id=self.kwargs.get("project_id"),
+            )
+            .prefetch_related("fields", "versions")
+            .order_by("-created_at")
+        )
+
+    def get(self, request, slug, project_id):
+        entity_type = request.query_params.get("entity_type")
+        queryset = self.get_queryset()
+
+        if entity_type:
+            queryset = queryset.filter(entity_type=entity_type)
+
+        serializer = TemplateDetailSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, slug, project_id):
+        project = Project.objects.get(pk=project_id)
+        serializer = TemplateCreateSerializer(
+            data=request.data,
+            context={
+                "project_id": project_id,
+                "workspace_id": project.workspace_id,
+            },
+        )
+        if serializer.is_valid():
+            template = serializer.save(
+                workspace_id=project.workspace_id,
+                project_id=project_id,
+            )
+            return Response(TemplateDetailSerializer(template).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TemplateDetailAPIEndpoint(BaseAPIView):
+    """Template Detail Endpoint"""
+
+    model = Template
+    serializer_class = TemplateSerializer
+    permission_classes = [ProjectEntityPermission]
+    use_read_replica = True
+
+    def get_queryset(self):
+        return Template.objects.filter(
+            workspace__slug=self.kwargs.get("slug"),
+            project_id=self.kwargs.get("project_id"),
+        ).prefetch_related("fields", "versions")
+
+    def get(self, request, slug, project_id, template_id):
+        template = self.get_queryset().get(pk=template_id)
+        serializer = TemplateDetailSerializer(template)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request, slug, project_id, template_id):
+        template = self.get_queryset().get(pk=template_id)
+        serializer = TemplateCreateSerializer(
+            template,
+            data=request.data,
+            partial=True,
+            context={"template_id": template_id},
+        )
+        if serializer.is_valid():
+            template = serializer.save(create_version=True)
+            return Response(TemplateDetailSerializer(template).data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, slug, project_id, template_id):
+        template = self.get_queryset().get(pk=template_id)
+        template.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class TemplateVersionListAPIEndpoint(BaseAPIView):
+    """List template versions"""
+
+    model = TemplateVersion
+    serializer_class = TemplateVersionSerializer
+    permission_classes = [ProjectEntityPermission]
+    use_read_replica = True
+
+    def get_queryset(self):
+        return TemplateVersion.objects.filter(
+            template__workspace__slug=self.kwargs.get("slug"),
+            template__project_id=self.kwargs.get("project_id"),
+            template_id=self.kwargs.get("template_id"),
+        ).order_by("-version")
+
+    def get(self, request, slug, project_id, template_id):
+        versions = self.get_queryset()
+        serializer = TemplateVersionSerializer(versions, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class TemplateVersionRestoreAPIEndpoint(BaseAPIView):
+    """Restore template from a version"""
+
+    model = Template
+    permission_classes = [ProjectMemberPermission]
+
+    def post(self, request, slug, project_id, template_id, version_id):
+        template = Template.objects.get(
+            workspace__slug=slug,
+            project_id=project_id,
+            pk=template_id,
+        )
+        version = TemplateVersion.objects.get(template=template, pk=version_id)
+
+        template.name = version.name
+        template.description = version.description
+        template.schema_version = version.schema_version
+        template.save()
+
+        template.fields.all().delete()
+        for field_data in version.fields_snapshot:
+            field_data.pop("id", None)
+            field_data.pop("created_at", None)
+            field_data.pop("updated_at", None)
+            field_data.pop("deleted_at", None)
+            TemplateField.objects.create(template=template, **field_data)
+
+        TemplateVersion.create_version(template, f"Restored from version {version.version}")
+
+        return Response(TemplateDetailSerializer(template).data, status=status.HTTP_200_OK)
+
+
+class TemplateExportAPIEndpoint(BaseAPIView):
+    """Export template as JSON"""
+
+    model = Template
+    serializer_class = TemplateSerializer
+    permission_classes = [ProjectEntityPermission]
+    use_read_replica = True
+
+    def get(self, request, slug, project_id, template_id):
+        template = (
+            Template.objects.filter(
+                workspace__slug=slug,
+                project_id=project_id,
+                pk=template_id,
+            )
+            .prefetch_related("fields")
+            .first()
+        )
+
+        if not template:
+            return Response({"error": "Template not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        export_data = {
+            "name": template.name,
+            "description": template.description,
+            "entity_type": template.entity_type,
+            "schema_version": template.schema_version,
+            "fields": TemplateFieldSerializer(template.fields.all(), many=True).data,
+            "exported_at": timezone.now().isoformat(),
+        }
+
+        return Response(export_data, status=status.HTTP_200_OK)
+
+
+class TemplateImportAPIEndpoint(BaseAPIView):
+    """Import template from JSON"""
+
+    model = Template
+    serializer_class = TemplateCreateSerializer
+    permission_classes = [ProjectMemberPermission]
+
+    def post(self, request, slug, project_id):
+        project = Project.objects.get(pk=project_id)
+
+        try:
+            if isinstance(request.data, str):
+                data = json.loads(request.data)
+            else:
+                data = request.data
+        except json.JSONDecodeError:
+            return Response({"error": "Invalid JSON"}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = TemplateCreateSerializer(
+            data=data,
+            context={
+                "project_id": project_id,
+                "workspace_id": project.workspace_id,
+            },
+        )
+        if serializer.is_valid():
+            template = serializer.save()
+            return Response(TemplateDetailSerializer(template).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

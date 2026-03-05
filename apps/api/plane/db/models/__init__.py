@@ -78,6 +78,9 @@ from .template import (
     PageTemplate,
     PageTemplateLabel,
     TemplateType,
+    Template,
+    TemplateField,
+    TemplateVersion,
 )
 from .user import Account, Profile, User, BotTypeEnum
 from .view import IssueView

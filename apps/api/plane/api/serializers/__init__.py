@@ -95,4 +95,11 @@ from .template import (
     PageTemplateCreateSerializer,
     PageTemplateDetailSerializer,
     TemplateInstantiateSerializer,
+    TemplateSerializer,
+    TemplateCreateSerializer,
+    TemplateDetailSerializer,
+    TemplateFieldSerializer,
+    TemplateFieldCreateSerializer,
+    TemplateVersionSerializer,
+    TemplateExportSerializer,
 )
