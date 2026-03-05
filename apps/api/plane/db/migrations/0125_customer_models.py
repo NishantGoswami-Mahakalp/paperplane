@@ -13,7 +13,6 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="Customer",
             fields=[
-                ("id", models.UUIDField(default=models.UUIDField(editable=False, primary_key=True, serialize=False))),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("deleted_at", models.DateTimeField(blank=True, db_index=True, null=True)),
@@ -71,7 +70,6 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="CustomerContact",
             fields=[
-                ("id", models.UUIDField(default=models.UUIDField(editable=False, primary_key=True, serialize=False))),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("deleted_at", models.DateTimeField(blank=True, db_index=True, null=True)),
