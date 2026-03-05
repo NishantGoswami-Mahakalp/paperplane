@@ -22,7 +22,11 @@ export type TWidgetKeys =
   | "issues_by_status"
   | "assignee_workload"
   | "issues_trend"
-  | "cycle_burndown";
+  | "cycle_burndown"
+  | "velocity"
+  | "lead_time"
+  | "cycle_time"
+  | "cumulative_flow";
 
 export type TIssuesListTypes = "pending" | "upcoming" | "overdue" | "completed";
 
@@ -75,6 +79,31 @@ export type TCycleBurndownWidgetFilters = {
   plot_type?: "burndown" | "burnup";
 };
 
+export type TVelocityWidgetFilters = {
+  custom_dates?: string[];
+  duration?: EDurationFilters;
+  project_ids?: string[];
+  segment_by?: "week" | "month";
+};
+
+export type TLeadTimeWidgetFilters = {
+  custom_dates?: string[];
+  duration?: EDurationFilters;
+  project_ids?: string[];
+};
+
+export type TCycleTimeWidgetFilters = {
+  custom_dates?: string[];
+  duration?: EDurationFilters;
+  project_ids?: string[];
+};
+
+export type TCumulativeFlowWidgetFilters = {
+  custom_dates?: string[];
+  duration?: EDurationFilters;
+  project_ids?: string[];
+};
+
 export type TWidgetFiltersFormData =
   | {
       widgetKey: "assigned_issues";
@@ -107,6 +136,22 @@ export type TWidgetFiltersFormData =
   | {
       widgetKey: "cycle_burndown";
       filters: Partial<TCycleBurndownWidgetFilters>;
+    }
+  | {
+      widgetKey: "velocity";
+      filters: Partial<TVelocityWidgetFilters>;
+    }
+  | {
+      widgetKey: "lead_time";
+      filters: Partial<TLeadTimeWidgetFilters>;
+    }
+  | {
+      widgetKey: "cycle_time";
+      filters: Partial<TCycleTimeWidgetFilters>;
+    }
+  | {
+      widgetKey: "cumulative_flow";
+      filters: Partial<TCumulativeFlowWidgetFilters>;
     };
 
 export type TWidget = {
@@ -121,7 +166,11 @@ export type TWidget = {
     TIssuesByStatusWidgetFilters &
     TAssigneeWorkloadWidgetFilters &
     TIssuesTrendWidgetFilters &
-    TCycleBurndownWidgetFilters;
+    TCycleBurndownWidgetFilters &
+    TVelocityWidgetFilters &
+    TLeadTimeWidgetFilters &
+    TCycleTimeWidgetFilters &
+    TCumulativeFlowWidgetFilters;
   filters: // only for write
   TAssignedIssuesWidgetFilters &
     TCreatedIssuesWidgetFilters &
@@ -130,7 +179,11 @@ export type TWidget = {
     TIssuesByStatusWidgetFilters &
     TAssigneeWorkloadWidgetFilters &
     TIssuesTrendWidgetFilters &
-    TCycleBurndownWidgetFilters;
+    TCycleBurndownWidgetFilters &
+    TVelocityWidgetFilters &
+    TLeadTimeWidgetFilters &
+    TCycleTimeWidgetFilters &
+    TCumulativeFlowWidgetFilters;
 };
 
 export type TWidgetStatsRequestParams =
@@ -185,6 +238,27 @@ export type TWidgetStatsRequestParams =
       cycle_id: string;
       project_ids?: string[];
       plot_type?: "burndown" | "burnup";
+    }
+  | {
+      target_date: string;
+      widget_key: "velocity";
+      project_ids?: string[];
+      segment_by?: "week" | "month";
+    }
+  | {
+      target_date: string;
+      widget_key: "lead_time";
+      project_ids?: string[];
+    }
+  | {
+      target_date: string;
+      widget_key: "cycle_time";
+      project_ids?: string[];
+    }
+  | {
+      target_date: string;
+      widget_key: "cumulative_flow";
+      project_ids?: string[];
     };
 
 export type TWidgetIssue = TIssue & {
@@ -265,6 +339,33 @@ export type TCycleBurndownWidgetResponse = {
   completed: number;
 };
 
+export type TVelocityWidgetResponse = {
+  date: string;
+  completed: number;
+  segment: string;
+};
+
+export type TLeadTimeWidgetResponse = {
+  date: string;
+  avg_lead_time: number;
+  issues_count: number;
+};
+
+export type TCycleTimeWidgetResponse = {
+  date: string;
+  avg_cycle_time: number;
+  issues_count: number;
+};
+
+export type TCumulativeFlowWidgetResponse = {
+  date: string;
+  backlog: number;
+  unstarted: number;
+  started: number;
+  completed: number;
+  cancelled: number;
+};
+
 export type TWidgetStatsResponse =
   | TOverviewStatsWidgetResponse
   | TIssuesByStateGroupsWidgetResponse[]
@@ -277,7 +378,11 @@ export type TWidgetStatsResponse =
   | TIssuesByStatusWidgetResponse[]
   | TAssigneeWorkloadWidgetResponse[]
   | TIssuesTrendWidgetResponse[]
-  | TCycleBurndownWidgetResponse[];
+  | TCycleBurndownWidgetResponse[]
+  | TVelocityWidgetResponse[]
+  | TLeadTimeWidgetResponse[]
+  | TCycleTimeWidgetResponse[]
+  | TCumulativeFlowWidgetResponse[];
 
 // dashboard
 export type TDeprecatedDashboard = {

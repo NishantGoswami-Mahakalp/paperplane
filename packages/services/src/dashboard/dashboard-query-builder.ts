@@ -14,6 +14,10 @@ import type {
   TCycleBurndownWidgetFilters,
   TAssignedIssuesWidgetFilters,
   TCreatedIssuesWidgetFilters,
+  TVelocityWidgetFilters,
+  TLeadTimeWidgetFilters,
+  TCycleTimeWidgetFilters,
+  TCumulativeFlowWidgetFilters,
 } from "@plane/types";
 import { EDurationFilters } from "@plane/constants";
 
@@ -122,6 +126,39 @@ export class DashboardQueryBuilder implements IDashboardQueryBuilder {
           widget_key: "created_issues",
           target_date: targetDate,
           issue_type: createdFilters?.tab || "pending",
+        };
+      }
+      case "velocity": {
+        const velocityFilters = filters as Partial<TVelocityWidgetFilters>;
+        return {
+          widget_key: "velocity",
+          target_date: targetDate,
+          project_ids: velocityFilters?.project_ids,
+          segment_by: velocityFilters?.segment_by || "week",
+        };
+      }
+      case "lead_time": {
+        const leadTimeFilters = filters as Partial<TLeadTimeWidgetFilters>;
+        return {
+          widget_key: "lead_time",
+          target_date: targetDate,
+          project_ids: leadTimeFilters?.project_ids,
+        };
+      }
+      case "cycle_time": {
+        const cycleTimeFilters = filters as Partial<TCycleTimeWidgetFilters>;
+        return {
+          widget_key: "cycle_time",
+          target_date: targetDate,
+          project_ids: cycleTimeFilters?.project_ids,
+        };
+      }
+      case "cumulative_flow": {
+        const cumulativeFlowFilters = filters as Partial<TCumulativeFlowWidgetFilters>;
+        return {
+          widget_key: "cumulative_flow",
+          target_date: targetDate,
+          project_ids: cumulativeFlowFilters?.project_ids,
         };
       }
       default:
