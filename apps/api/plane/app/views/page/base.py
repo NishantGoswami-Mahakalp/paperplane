@@ -94,15 +94,15 @@ class PageViewSet(BaseViewSet):
                 projects__project_projectmember__is_active=True,
                 projects__archived_at__isnull=True,
             )
-            .filter(parent__isnull=True)
             .filter(Q(owned_by=self.request.user) | Q(access=0))
             .prefetch_related("projects")
             .select_related("workspace")
             .select_related("owned_by")
+            .prefetch_related("child_page")
             .annotate(is_favorite=Exists(subquery))
             .order_by(self.request.GET.get("order_by", "-created_at"))
             .prefetch_related("labels")
-            .order_by("-is_favorite", "-created_at")
+            .order_by("-is_favorite", "sort_order", "-created_at")
             .annotate(
                 project=Exists(
                     ProjectPage.objects.filter(page_id=OuterRef("id"), project_id=self.kwargs.get("project_id"))
@@ -302,6 +302,16 @@ class PageViewSet(BaseViewSet):
             and not project.guest_view_all_features
         ):
             queryset = queryset.filter(owned_by=request.user)
+
+        parent_id = request.query_params.get("parent")
+        if parent_id:
+            if parent_id == "null":
+                queryset = queryset.filter(parent__isnull=True)
+            else:
+                queryset = queryset.filter(parent_id=parent_id)
+        else:
+            queryset = queryset.filter(parent__isnull=True)
+
         pages = PageSerializer(queryset, many=True).data
         return Response(pages, status=status.HTTP_200_OK)
 
@@ -637,3 +647,110 @@ class PageDuplicateEndpoint(BaseAPIView):
         )
         serializer = PageDetailSerializer(page)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def get_page(self, slug, project_id, page_id):
+        return Page.objects.get(
+            pk=page_id,
+            workspace__slug=slug,
+            projects__id=project_id,
+            project_pages__deleted_at__isnull=True,
+        )
+
+    def move(self, request, slug, project_id, page_id):
+        page = self.get_page(slug, project_id, page_id)
+
+        if page.is_locked:
+            return Response({"error": "Page is locked"}, status=status.HTTP_400_BAD_REQUEST)
+
+        new_parent_id = request.data.get("parent")
+        if new_parent_id:
+            if new_parent_id == str(page_id):
+                return Response(
+                    {"error": "Page cannot be its own parent"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            new_parent = Page.objects.filter(
+                pk=new_parent_id,
+                workspace__slug=slug,
+                projects__id=project_id,
+                project_pages__deleted_at__isnull=True,
+            ).first()
+
+            if not new_parent:
+                return Response(
+                    {"error": "Parent page not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            current = new_parent
+            while current is not None:
+                if current.id == page_id:
+                    return Response(
+                        {"error": "Cannot move page to its descendant"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                current = current.parent
+
+            page.parent = new_parent
+        else:
+            page.parent = None
+
+        page.save()
+        serializer = PageDetailSerializer(page)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def reorder(self, request, slug, project_id, page_id):
+        page = self.get_page(slug, project_id, page_id)
+
+        if page.is_locked:
+            return Response({"error": "Page is locked"}, status=status.HTTP_400_BAD_REQUEST)
+
+        new_sort_order = request.data.get("sort_order")
+        if new_sort_order is None:
+            return Response(
+                {"error": "sort_order is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        parent_id = request.data.get("parent")
+        target_parent_id = parent_id if parent_id else None
+        current_parent_id = page.parent_id if page.parent_id else None
+
+        siblings = Page.objects.filter(
+            workspace__slug=slug,
+            projects__id=project_id,
+            project_pages__deleted_at__isnull=True,
+            parent_id=target_parent_id,
+        ).exclude(id=page_id)
+
+        if target_parent_id != current_parent_id:
+            page.parent_id = target_parent_id
+
+        page.sort_order = new_sort_order
+        page.save()
+
+        serializer = PageDetailSerializer(page)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def children(self, request, slug, project_id, page_id):
+        page = self.get_page(slug, project_id, page_id)
+
+        children = (
+            Page.objects.filter(
+                workspace__slug=slug,
+                projects__id=project_id,
+                project_pages__deleted_at__isnull=True,
+                parent_id=page_id,
+            )
+            .select_related("owned_by")
+            .annotate(
+                is_favorite=Exists(
+                    UserFavorite.objects.filter(user=request.user, entity_type="page", entity_identifier=OuterRef("pk"))
+                )
+            )
+            .order_by("sort_order", "created_at")
+        )
+
+        serializer = PageSerializer(children, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

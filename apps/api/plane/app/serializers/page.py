@@ -32,6 +32,12 @@ class PageSerializer(BaseSerializer):
     # Many to many
     label_ids = serializers.ListField(child=serializers.UUIDField(), required=False)
     project_ids = serializers.ListField(child=serializers.UUIDField(), required=False)
+    parent = serializers.PrimaryKeyRelatedField(
+        queryset=Page.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    sort_order = serializers.FloatField(required=False)
 
     class Meta:
         model = Page
@@ -43,6 +49,7 @@ class PageSerializer(BaseSerializer):
             "color",
             "labels",
             "parent",
+            "sort_order",
             "is_favorite",
             "is_locked",
             "archived_at",
@@ -128,9 +135,25 @@ class PageSerializer(BaseSerializer):
 
 class PageDetailSerializer(PageSerializer):
     description_html = serializers.CharField()
+    breadcrumbs = serializers.SerializerMethodField()
+    children = serializers.SerializerMethodField()
 
     class Meta(PageSerializer.Meta):
-        fields = PageSerializer.Meta.fields + ["description_html"]
+        fields = PageSerializer.Meta.fields + ["description_html", "breadcrumbs", "children"]
+
+    def get_breadcrumbs(self, obj):
+        breadcrumbs = []
+        current_page = obj
+        while current_page is not None:
+            breadcrumbs.insert(0, {"id": str(current_page.id), "name": current_page.name})
+            current_page = current_page.parent
+        return breadcrumbs
+
+    def get_children(self, obj):
+        children = getattr(obj, "_prefetched_objects_cache", {}).get("child_page")
+        if children is None:
+            children = obj.child_page.all() if hasattr(obj, "child_page") else []
+        return [{"id": str(c.id), "name": c.name, "sort_order": c.sort_order} for c in children]
 
 
 class PageVersionSerializer(BaseSerializer):

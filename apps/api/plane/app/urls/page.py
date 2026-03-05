@@ -73,4 +73,19 @@ urlpatterns = [
         PageDuplicateEndpoint.as_view(),
         name="page-duplicate",
     ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/move/",
+        PageViewSet.as_view({"post": "move"}),
+        name="page-move",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/reorder/",
+        PageViewSet.as_view({"post": "reorder"}),
+        name="page-reorder",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/pages/<uuid:page_id>/children/",
+        PageViewSet.as_view({"get": "children"}),
+        name="page-children",
+    ),
 ]

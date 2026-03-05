@@ -9,6 +9,7 @@ from django.utils import timezone
 
 # Django imports
 from django.db import models
+from django.db.models import Max
 
 # Module imports
 from plane.utils.html_processor import strip_tags
@@ -74,6 +75,17 @@ class Page(BaseModel):
             if (self.description_html == "" or self.description_html is None)
             else strip_tags(self.description_html)
         )
+
+        if self.sort_order is None or self.sort_order == self.DEFAULT_SORT_ORDER:
+            largest_sort_order = Page.objects.filter(
+                workspace=self.workspace,
+                parent_id=self.parent_id,
+            ).aggregate(largest=Max("sort_order"))["largest"]
+            if largest_sort_order is not None:
+                self.sort_order = largest_sort_order + 10000
+            else:
+                self.sort_order = self.DEFAULT_SORT_ORDER
+
         super(Page, self).save(*args, **kwargs)
 
 
