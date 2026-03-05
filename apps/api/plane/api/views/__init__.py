@@ -82,6 +82,7 @@ from .template import (
     PageTemplateListCreateAPIEndpoint,
     PageTemplateDetailAPIEndpoint,
     PageTemplateInstantiateAPIEndpoint,
+    TemplateListCreateAPIEndpoint,
 )
 
 from .customer import (
