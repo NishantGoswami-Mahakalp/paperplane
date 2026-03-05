@@ -18,7 +18,11 @@ export type TWidgetKeys =
   | "issues_by_priority"
   | "recent_activity"
   | "recent_projects"
-  | "recent_collaborators";
+  | "recent_collaborators"
+  | "issues_by_status"
+  | "assignee_workload"
+  | "issues_trend"
+  | "cycle_burndown";
 
 export type TIssuesListTypes = "pending" | "upcoming" | "overdue" | "completed";
 
@@ -45,6 +49,32 @@ export type TIssuesByPriorityWidgetFilters = {
   duration?: EDurationFilters;
 };
 
+export type TIssuesByStatusWidgetFilters = {
+  custom_dates?: string[];
+  duration?: EDurationFilters;
+  project_ids?: string[];
+};
+
+export type TAssigneeWorkloadWidgetFilters = {
+  custom_dates?: string[];
+  duration?: EDurationFilters;
+  project_ids?: string[];
+  assignees?: string[];
+};
+
+export type TIssuesTrendWidgetFilters = {
+  custom_dates?: string[];
+  duration?: EDurationFilters;
+  project_ids?: string[];
+  segment_by?: "state_group" | "priority" | "assignee";
+};
+
+export type TCycleBurndownWidgetFilters = {
+  cycle_id?: string;
+  project_ids?: string[];
+  plot_type?: "burndown" | "burnup";
+};
+
 export type TWidgetFiltersFormData =
   | {
       widgetKey: "assigned_issues";
@@ -61,6 +91,22 @@ export type TWidgetFiltersFormData =
   | {
       widgetKey: "issues_by_priority";
       filters: Partial<TIssuesByPriorityWidgetFilters>;
+    }
+  | {
+      widgetKey: "issues_by_status";
+      filters: Partial<TIssuesByStatusWidgetFilters>;
+    }
+  | {
+      widgetKey: "assignee_workload";
+      filters: Partial<TAssigneeWorkloadWidgetFilters>;
+    }
+  | {
+      widgetKey: "issues_trend";
+      filters: Partial<TIssuesTrendWidgetFilters>;
+    }
+  | {
+      widgetKey: "cycle_burndown";
+      filters: Partial<TCycleBurndownWidgetFilters>;
     };
 
 export type TWidget = {
@@ -71,12 +117,20 @@ export type TWidget = {
   TAssignedIssuesWidgetFilters &
     TCreatedIssuesWidgetFilters &
     TIssuesByStateGroupsWidgetFilters &
-    TIssuesByPriorityWidgetFilters;
+    TIssuesByPriorityWidgetFilters &
+    TIssuesByStatusWidgetFilters &
+    TAssigneeWorkloadWidgetFilters &
+    TIssuesTrendWidgetFilters &
+    TCycleBurndownWidgetFilters;
   filters: // only for write
   TAssignedIssuesWidgetFilters &
     TCreatedIssuesWidgetFilters &
     TIssuesByStateGroupsWidgetFilters &
-    TIssuesByPriorityWidgetFilters;
+    TIssuesByPriorityWidgetFilters &
+    TIssuesByStatusWidgetFilters &
+    TAssigneeWorkloadWidgetFilters &
+    TIssuesTrendWidgetFilters &
+    TCycleBurndownWidgetFilters;
 };
 
 export type TWidgetStatsRequestParams =
@@ -107,6 +161,30 @@ export type TWidgetStatsRequestParams =
       per_page: number;
       search?: string;
       widget_key: "recent_collaborators";
+    }
+  | {
+      target_date: string;
+      widget_key: "issues_by_status";
+      project_ids?: string[];
+    }
+  | {
+      target_date: string;
+      widget_key: "assignee_workload";
+      project_ids?: string[];
+      assignees?: string[];
+    }
+  | {
+      target_date: string;
+      widget_key: "issues_trend";
+      project_ids?: string[];
+      segment_by?: "state_group" | "priority" | "assignee";
+    }
+  | {
+      target_date: string;
+      widget_key: "cycle_burndown";
+      cycle_id: string;
+      project_ids?: string[];
+      plot_type?: "burndown" | "burnup";
     };
 
 export type TWidgetIssue = TIssue & {
@@ -156,6 +234,37 @@ export type TRecentCollaboratorsWidgetResponse = {
   user_id: string;
 };
 
+export type TIssuesByStatusWidgetResponse = {
+  count: number;
+  state_id: string;
+  state_name: string;
+  state_group: TStateGroups;
+  color: string;
+};
+
+export type TAssigneeWorkloadWidgetResponse = {
+  assignee_id: string;
+  assignee_name: string;
+  assignee_avatar?: string;
+  total_issues: number;
+  pending_issues: number;
+  in_progress_issues: number;
+  completed_issues: number;
+};
+
+export type TIssuesTrendWidgetResponse = {
+  date: string;
+  created: number;
+  resolved: number;
+};
+
+export type TCycleBurndownWidgetResponse = {
+  date: string;
+  total: number;
+  remaining: number;
+  completed: number;
+};
+
 export type TWidgetStatsResponse =
   | TOverviewStatsWidgetResponse
   | TIssuesByStateGroupsWidgetResponse[]
@@ -164,7 +273,11 @@ export type TWidgetStatsResponse =
   | TCreatedIssuesWidgetResponse
   | TRecentActivityWidgetResponse[]
   | TRecentProjectsWidgetResponse
-  | TRecentCollaboratorsWidgetResponse[];
+  | TRecentCollaboratorsWidgetResponse[]
+  | TIssuesByStatusWidgetResponse[]
+  | TAssigneeWorkloadWidgetResponse[]
+  | TIssuesTrendWidgetResponse[]
+  | TCycleBurndownWidgetResponse[];
 
 // dashboard
 export type TDeprecatedDashboard = {
