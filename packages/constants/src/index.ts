@@ -14,6 +14,7 @@ export * from "./emoji";
 export * from "./endpoints";
 export * from "./estimates";
 export * from "./event-tracker";
+export * from "./feature-flag";
 export * from "./file";
 export * from "./filter";
 export * from "./graph";

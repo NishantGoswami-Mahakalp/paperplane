@@ -18,6 +18,7 @@ from .draft import (
 )
 from .estimate import Estimate, EstimatePoint
 from .exporter import ExporterHistory
+from .feature_flag import FeatureFlag, FeatureFlagValue
 from .importer import Importer
 from .intake import Intake, IntakeIssue
 from .integration import (

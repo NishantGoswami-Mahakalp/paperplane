@@ -23,6 +23,7 @@ export * from "./enums";
 export * from "./epics";
 export * from "./estimate";
 export * from "./favorite";
+export * from "./feature-flag";
 export * from "./file";
 export * from "./home";
 export * from "./importer";
