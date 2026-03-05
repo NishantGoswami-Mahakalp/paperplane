@@ -24,15 +24,15 @@ def get_issue_template_priority_choices():
 
 
 def get_page_template_access_choices():
-    from plane.db.models.template import PageTemplate
+    from plane.db.models.page import Page
 
-    return PageTemplate.ACCESS_CHOICES
+    return Page.ACCESS_CHOICES
 
 
 def get_page_template_default_access():
-    from plane.db.models.template import PageTemplate
+    from plane.db.models.page import Page
 
-    return PageTemplate.PRIVATE_ACCESS
+    return Page.PRIVATE_ACCESS
 
 
 class TemplateFieldSerializer(BaseSerializer):
