@@ -5,4 +5,5 @@
  */
 
 export * from "./intake.service";
+export * from "./intake-form-public.service";
 export * from "./issue.service";

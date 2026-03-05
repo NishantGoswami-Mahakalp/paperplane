@@ -55,6 +55,7 @@ export interface IIntakeFormFieldConfig {
   pattern?: string;
   minLength?: number;
   maxLength?: number;
+  target_property?: TIntakeTargetProperty;
 }
 
 export interface IIntakeForm {
