@@ -19,9 +19,7 @@ export type TUserMention = {
 export abstract class PageCoreService extends APIService {
   protected abstract basePath: string;
 
-  constructor() {
-    super();
-  }
+  
 
   async fetchDetails(pageId: string): Promise<TPage> {
     try {

@@ -83,6 +83,8 @@ from .workspace import (
     WorkspaceUserPreference,
 )
 
+from .worklog import WorkLog
+from .timer_session import TimerSession
 from .favorite import UserFavorite
 
 from .issue_type import IssueType

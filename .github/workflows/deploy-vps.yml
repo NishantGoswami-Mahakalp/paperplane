@@ -190,6 +190,12 @@ jobs:
             docker compose pull
             docker compose up -d
             
+            # Wait for containers to start
+            sleep 10
+            
+            # Connect plane-web to caddy network so caddy can reach it by name
+            docker network connect caddy-net plane-web-1 2>/dev/null || true
+            
             echo "Cleaning up old images..."
             docker image prune -f
             

@@ -255,3 +255,11 @@ from .integration.forgejo import (
     ForgejoRepositorySyncEndpoint,
     ForgejoRepositorySyncListEndpoint,
 )
+
+from .issue.worklog import (
+    WorkLogViewSet,
+    WorkLogListEndpoint,
+    TimerStartEndpoint,
+    TimerStopEndpoint,
+    TimerDetailEndpoint,
+)

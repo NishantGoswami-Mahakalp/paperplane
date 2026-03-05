@@ -12,9 +12,7 @@ import { AppError } from "@/lib/errors";
 import { APIService } from "@/services/api.service";
 
 export class UserService extends APIService {
-  constructor() {
-    super();
-  }
+  
 
   currentUserConfig() {
     return {

@@ -7,9 +7,11 @@
 import { useEffect, useState } from "react";
 
 export const useCurrentTime = () => {
-  const [currentTime, setCurrentTime] = useState(new Date());
-  // update the current time every minute (60000ms)
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+
   useEffect(() => {
+    setCurrentTime(new Date());
+
     const intervalId = setInterval(() => {
       setCurrentTime(new Date());
     }, 60000);
@@ -18,6 +20,6 @@ export const useCurrentTime = () => {
   }, []);
 
   return {
-    currentTime,
+    currentTime: currentTime ?? new Date(),
   };
 };
