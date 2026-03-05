@@ -7,3 +7,4 @@
 export * from "./provider";
 export * from "./issue-type-select";
 export * from "./template-select";
+export * from "./modal-additional-properties";
