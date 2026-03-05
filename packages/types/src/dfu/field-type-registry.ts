@@ -6,11 +6,16 @@
 
 export const FIELD_TYPE = {
   TEXT: "text",
+  TEXT_MULTILINE: "text_multiline",
   NUMBER: "number",
+  NUMBER_INTEGER: "number_integer",
+  NUMBER_FLOAT: "number_float",
   EMAIL: "email",
   URL: "url",
   DATE: "date",
   DATE_TIME: "date_time",
+  SELECT: "select",
+  MULTI_SELECT: "multi_select",
 } as const;
 
 export type TFieldType = (typeof FIELD_TYPE)[keyof typeof FIELD_TYPE];
@@ -21,10 +26,19 @@ export interface IFieldValidationSchema {
   maxLength?: number;
   min?: number;
   max?: number;
+  step?: number;
+  minSelections?: number;
+  maxSelections?: number;
   pattern?: string;
   patternMessage?: string;
   email?: boolean;
   url?: boolean;
+  integer?: boolean;
+  float?: boolean;
+  dateFormat?: string;
+  timezone?: string;
+  allowFuture?: boolean;
+  allowPast?: boolean;
 }
 
 export interface IFieldTypeMetadata {
@@ -34,6 +48,29 @@ export interface IFieldTypeMetadata {
   icon?: string;
   validationSchema?: IFieldValidationSchema;
   defaultValue?: unknown;
+  options?: ISelectOption[];
+  optionGroups?: IOptionGroup[];
+  dynamicOptionsUrl?: string;
+  dynamicOptionsFetcher?: () => Promise<ISelectOption[]>;
+}
+
+export interface ISelectOption {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}
+
+export interface IOptionGroup {
+  id: string;
+  name: string;
+  options: ISelectOption[];
+}
+
+export interface IFieldOptions {
+  options?: ISelectOption[];
+  optionGroups?: IOptionGroup[];
+  dynamicOptionsUrl?: string;
+  dynamicOptionsFetcher?: () => Promise<ISelectOption[]>;
 }
 
 export interface IFieldTypeRegistry {
@@ -160,6 +197,24 @@ export class FieldTypeRegistry implements IFieldTypeRegistry {
     }
 
     if (typeof value === "number") {
+      if (schema.integer === true && !Number.isInteger(value)) {
+        return {
+          valid: false,
+          error: "Value must be an integer",
+        };
+      }
+      if (schema.float === true) {
+        const decimalPlaces = (value.toString().split(".")[1] || "").length;
+        if (schema.step !== undefined && decimalPlaces > 0) {
+          const stepDecimalPlaces = (schema.step.toString().split(".")[1] || "").length;
+          if (decimalPlaces > stepDecimalPlaces) {
+            return {
+              valid: false,
+              error: `Maximum ${stepDecimalPlaces} decimal places allowed`,
+            };
+          }
+        }
+      }
       if (schema.min !== undefined && value < schema.min) {
         return {
           valid: false,
@@ -170,6 +225,37 @@ export class FieldTypeRegistry implements IFieldTypeRegistry {
         return {
           valid: false,
           error: `Maximum value is ${schema.max}`,
+        };
+      }
+    }
+
+    if (value instanceof Date || (typeof value === "string" && !isNaN(Date.parse(value)))) {
+      const dateValue = value instanceof Date ? value : new Date(value);
+      if (schema.allowFuture === false && dateValue > new Date()) {
+        return {
+          valid: false,
+          error: "Future dates are not allowed",
+        };
+      }
+      if (schema.allowPast === false && dateValue < new Date()) {
+        return {
+          valid: false,
+          error: "Past dates are not allowed",
+        };
+      }
+    }
+
+    if (Array.isArray(value)) {
+      if (schema.minSelections !== undefined && value.length < schema.minSelections) {
+        return {
+          valid: false,
+          error: `Minimum ${schema.minSelections} selection(s) required`,
+        };
+      }
+      if (schema.maxSelections !== undefined && value.length > schema.maxSelections) {
+        return {
+          valid: false,
+          error: `Maximum ${schema.maxSelections} selection(s) allowed`,
         };
       }
     }
@@ -246,6 +332,27 @@ export const BASE_FIELD_TYPES: IFieldTypeMetadata[] = [
       required: false,
     },
     defaultValue: null,
+  },
+  {
+    type: FIELD_TYPE.SELECT,
+    name: "Select",
+    description: "Single selection from options",
+    icon: "chevron-down",
+    validationSchema: {
+      required: false,
+    },
+    defaultValue: "",
+  },
+  {
+    type: FIELD_TYPE.MULTI_SELECT,
+    name: "Multi Select",
+    description: "Multiple selection from options",
+    icon: "check-square",
+    validationSchema: {
+      required: false,
+      minSelections: 0,
+    },
+    defaultValue: [],
   },
 ];
 
