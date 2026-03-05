@@ -37,6 +37,7 @@ from plane.db.models import (
     CommentReaction,
     IssueVote,
     IssueRelation,
+    IssueHierarchyLink,
     State,
     IssueVersion,
     IssueDescriptionVersion,
@@ -478,6 +479,35 @@ class RelatedIssueSerializer(BaseSerializer):
         ]
 
 
+class IssueHierarchyLinkSerializer(BaseSerializer):
+    parent_issue_id = serializers.UUIDField(source="parent_issue.id", read_only=True)
+    parent_issue_name = serializers.CharField(source="parent_issue.name", read_only=True)
+    child_issue_id = serializers.UUIDField(source="child_issue.id", read_only=True)
+    child_issue_name = serializers.CharField(source="child_issue.name", read_only=True)
+
+    class Meta:
+        model = IssueHierarchyLink
+        fields = [
+            "id",
+            "parent_issue_id",
+            "parent_issue_name",
+            "child_issue_id",
+            "child_issue_name",
+            "created_by",
+            "created_at",
+            "updated_by",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "workspace",
+            "project",
+            "created_by",
+            "created_at",
+            "updated_by",
+            "updated_at",
+        ]
+
+
 class IssueAssigneeSerializer(BaseSerializer):
     assignee_details = UserLiteSerializer(read_only=True, source="assignee")
 
@@ -770,6 +800,9 @@ class IssueSerializer(DynamicBaseSerializer):
     sub_issues_count = serializers.IntegerField(read_only=True)
     attachment_count = serializers.IntegerField(read_only=True)
     link_count = serializers.IntegerField(read_only=True)
+    child_issues_count = serializers.IntegerField(read_only=True)
+    completed_child_issues_count = serializers.IntegerField(read_only=True)
+    child_issues_progress = serializers.FloatField(read_only=True)
 
     class Meta:
         model = Issue
@@ -799,6 +832,9 @@ class IssueSerializer(DynamicBaseSerializer):
             "link_count",
             "is_draft",
             "archived_at",
+            "child_issues_count",
+            "completed_child_issues_count",
+            "child_issues_progress",
         ]
         read_only_fields = fields
 
@@ -857,6 +893,9 @@ class IssueListDetailSerializer(serializers.Serializer):
             "sub_issues_count": instance.sub_issues_count,
             "attachment_count": instance.attachment_count,
             "link_count": instance.link_count,
+            "child_issues_count": instance.child_issues_count,
+            "completed_child_issues_count": instance.completed_child_issues_count,
+            "child_issues_progress": instance.child_issues_progress,
         }
 
         # Handle expanded fields only when requested - using direct field access

@@ -40,6 +40,7 @@ from .issue import (
     IssueAssignee,
     IssueBlocker,
     IssueComment,
+    IssueHierarchyLink,
     IssueLabel,
     IssueLink,
     IssueMention,

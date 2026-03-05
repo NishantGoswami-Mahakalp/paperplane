@@ -6,7 +6,7 @@ import factory
 from uuid import uuid4
 from django.utils import timezone
 
-from plane.db.models import User, Workspace, WorkspaceMember, Project, ProjectMember
+from plane.db.models import User, Workspace, WorkspaceMember, Project, ProjectMember, Issue, State, IssueHierarchyLink
 
 
 class UserFactory(factory.django.DjangoModelFactory):
@@ -81,5 +81,54 @@ class ProjectMemberFactory(factory.django.DjangoModelFactory):
     project = factory.SubFactory(ProjectFactory)
     member = factory.SubFactory(UserFactory)
     role = 20  # Admin role by default
+    created_at = factory.LazyFunction(timezone.now)
+    updated_at = factory.LazyFunction(timezone.now)
+
+
+class StateFactory(factory.django.DjangoModelFactory):
+    """Factory for creating State instances"""
+
+    class Meta:
+        model = State
+
+    id = factory.LazyFunction(uuid4)
+    name = factory.Sequence(lambda n: f"State {n}")
+    group = "unstarted"
+    project = factory.SubFactory(ProjectFactory)
+    created_by = factory.SelfAttribute("project.workspace.owner")
+    updated_by = factory.SelfAttribute("project.workspace.owner")
+    created_at = factory.LazyFunction(timezone.now)
+    updated_at = factory.LazyFunction(timezone.now)
+
+
+class IssueFactory(factory.django.DjangoModelFactory):
+    """Factory for creating Issue instances"""
+
+    class Meta:
+        model = Issue
+
+    id = factory.LazyFunction(uuid4)
+    name = factory.Sequence(lambda n: f"Issue {n}")
+    project = factory.SubFactory(ProjectFactory)
+    state = factory.SubFactory(StateFactory)
+    created_by = factory.SelfAttribute("project.workspace.owner")
+    updated_by = factory.SelfAttribute("project.workspace.owner")
+    created_at = factory.LazyFunction(timezone.now)
+    updated_at = factory.LazyFunction(timezone.now)
+
+
+class IssueHierarchyLinkFactory(factory.django.DjangoModelFactory):
+    """Factory for creating IssueHierarchyLink instances"""
+
+    class Meta:
+        model = IssueHierarchyLink
+
+    id = factory.LazyFunction(uuid4)
+    parent_issue = factory.SubFactory(IssueFactory)
+    child_issue = factory.SubFactory(IssueFactory)
+    project = factory.SelfAttribute("parent_issue.project")
+    workspace = factory.SelfAttribute("parent_issue.workspace")
+    created_by = factory.SelfAttribute("parent_issue.created_by")
+    updated_by = factory.SelfAttribute("parent_issue.updated_by")
     created_at = factory.LazyFunction(timezone.now)
     updated_at = factory.LazyFunction(timezone.now)

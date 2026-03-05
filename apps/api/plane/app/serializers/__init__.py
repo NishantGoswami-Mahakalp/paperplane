@@ -72,6 +72,7 @@ from .issue import (
     IssueVoteSerializer,
     IssueRelationSerializer,
     RelatedIssueSerializer,
+    IssueHierarchyLinkSerializer,
     IssuePublicSerializer,
     IssueDetailSerializer,
     IssueReactionLiteSerializer,

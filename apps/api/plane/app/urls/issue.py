@@ -17,6 +17,7 @@ from plane.app.views import (
     IssueListEndpoint,
     IssueReactionViewSet,
     IssueRelationViewSet,
+    IssueHierarchyLinkViewSet,
     IssueSubscriberViewSet,
     ProjectUserDisplayPropertyEndpoint,
     IssueViewSet,
@@ -243,6 +244,18 @@ urlpatterns = [
         name="issue-relation",
     ),
     ## End Issue Relation
+    ## Issue Hierarchy Link
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/hierarchy-links/",
+        IssueHierarchyLinkViewSet.as_view({"get": "list", "post": "create"}),
+        name="issue-hierarchy-link",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/hierarchy-links/<uuid:pk>/",
+        IssueHierarchyLinkViewSet.as_view({"delete": "destroy"}),
+        name="issue-hierarchy-link",
+    ),
+    ## End Issue Hierarchy Link
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/deleted-issues/",
         DeletedIssuesListViewSet.as_view(),

@@ -166,6 +166,12 @@ class Issue(ProjectBaseModel):
         null=True,
         blank=True,
     )
+    child_issues_count = models.PositiveIntegerField(default=0)
+    completed_child_issues_count = models.PositiveIntegerField(default=0)
+    child_issues_progress = models.FloatField(
+        default=0.0,
+        validators=[MinValueValidator(0.0), MaxValueValidator(100.0)],
+    )
 
     issue_objects = IssueManager()
 
@@ -309,6 +315,89 @@ class IssueRelation(ProjectBaseModel):
 
     def __str__(self):
         return f"{self.issue.name} {self.related_issue.name}"
+
+
+class IssueHierarchyLink(ProjectBaseModel):
+    parent_issue = models.ForeignKey(
+        Issue,
+        on_delete=models.CASCADE,
+        related_name="child_hierarchy_links",
+    )
+    child_issue = models.ForeignKey(
+        Issue,
+        on_delete=models.CASCADE,
+        related_name="parent_hierarchy_links",
+    )
+
+    class Meta:
+        unique_together = ["parent_issue", "child_issue", "deleted_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["parent_issue", "child_issue"],
+                condition=Q(deleted_at__isnull=True),
+                name="issue_hierarchy_unique_parent_child_when_deleted_at_null",
+            ),
+            models.CheckConstraint(
+                check=~models.Q(parent_issue=models.F("child_issue")),
+                name="issue_hierarchy_no_self_reference",
+            ),
+        ]
+        verbose_name = "Issue Hierarchy Link"
+        verbose_name_plural = "Issue Hierarchy Links"
+        db_table = "issue_hierarchy_links"
+        ordering = ("-created_at",)
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        if self.parent_issue_id == self.child_issue_id:
+            raise ValidationError("Cannot link an issue to itself")
+
+        if self.parent_issue.workspace_id != self.child_issue.workspace_id:
+            raise ValidationError("Parent and child issues must be in the same workspace")
+
+        if self.parent_issue.project_id != self.child_issue.project_id:
+            raise ValidationError("Parent and child issues must be in the same project")
+
+        if self._would_create_cycle():
+            raise ValidationError(
+                "Cannot create circular hierarchy link: child issue is already an ancestor of parent issue"
+            )
+
+    def _would_create_cycle(self):
+        """
+        Check if creating this link would create a cycle.
+        A cycle would occur if child_issue is already an ancestor of parent_issue.
+        """
+        if not self.parent_issue_id or not self.child_issue_id:
+            return False
+
+        visited = set()
+        queue = [self.child_issue_id]
+
+        while queue:
+            current_id = queue.pop(0)
+            if current_id in visited:
+                continue
+            visited.add(current_id)
+
+            if current_id == self.parent_issue_id:
+                return True
+
+            links = IssueHierarchyLink.objects.filter(parent_issue_id=current_id, deleted_at__isnull=True).values_list(
+                "child_issue_id", flat=True
+            )
+
+            queue.extend(links)
+
+        return False
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.parent_issue.name} -> {self.child_issue.name}"
 
 
 class IssueMention(ProjectBaseModel):

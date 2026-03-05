@@ -28,6 +28,7 @@ from plane.utils.timezone_converter import user_timezone_converter
 from collections import defaultdict
 from plane.utils.host import base_host
 from plane.utils.order_queryset import order_issue_queryset
+from plane.utils.issue_rollup import calculate_issue_rollups, update_ancestor_rollups
 
 
 class SubIssuesEndpoint(BaseAPIView):
@@ -186,6 +187,8 @@ class SubIssuesEndpoint(BaseAPIView):
             sub_issue.parent = parent_issue
 
         _ = Issue.objects.bulk_update(sub_issues, ["parent"], batch_size=10)
+
+        calculate_issue_rollups(issue_id)
 
         updated_sub_issues = Issue.issue_objects.filter(id__in=sub_issue_ids).annotate(state_group=F("state__group"))
 

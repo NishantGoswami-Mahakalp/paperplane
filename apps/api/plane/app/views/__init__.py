@@ -146,6 +146,8 @@ from .issue.link import IssueLinkViewSet
 
 from .issue.relation import IssueRelationViewSet
 
+from .issue.hierarchy import IssueHierarchyLinkViewSet
+
 from .issue.reaction import IssueReactionViewSet
 
 from .issue.sub_issue import SubIssuesEndpoint
