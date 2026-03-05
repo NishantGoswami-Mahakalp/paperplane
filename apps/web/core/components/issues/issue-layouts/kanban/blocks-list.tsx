@@ -8,6 +8,7 @@ import type { MutableRefObject } from "react";
 import { observer } from "mobx-react";
 // plane imports
 import type { TIssue, IIssueDisplayProperties, IIssueMap } from "@plane/types";
+import type { TSelectionHelper } from "@/hooks/use-multiple-select";
 // local imports
 import type { TRenderQuickActions } from "../list/list-view-types";
 import { KanbanIssueBlock } from "./block";
@@ -24,6 +25,7 @@ interface IssueBlocksListProps {
   canDropOverIssue: boolean;
   canDragIssuesInCurrentGrouping: boolean;
   scrollableContainerRef?: MutableRefObject<HTMLDivElement | null>;
+  selectionHelpers?: TSelectionHelper;
   isEpic?: boolean;
 }
 

@@ -19,7 +19,7 @@ import { Tooltip } from "@plane/propel/tooltip";
 import type { TIssue, IIssueDisplayProperties, IIssueMap } from "@plane/types";
 import { EIssueServiceType } from "@plane/types";
 // ui
-import { ControlLink, DropIndicator } from "@plane/ui";
+import { Checkbox, ControlLink, DropIndicator } from "@plane/ui";
 import { cn, generateWorkItemLink } from "@plane/utils";
 // components
 import RenderIfVisible from "@/components/core/render-if-visible-HOC";
@@ -38,6 +38,7 @@ import { IssueStats } from "@/plane-web/components/issues/issue-layouts/issue-st
 import type { TRenderQuickActions } from "../list/list-view-types";
 import { IssueProperties } from "../properties/all-properties";
 import { WithDisplayPropertiesHOC } from "../properties/with-display-properties-HOC";
+import type { TSelectionHelper } from "@/hooks/use-multiple-select";
 
 interface IssueBlockProps {
   issueId: string;
@@ -52,6 +53,7 @@ interface IssueBlockProps {
   quickActions: TRenderQuickActions;
   canEditProperties: (projectId: string | undefined) => boolean;
   scrollableContainerRef?: MutableRefObject<HTMLDivElement | null>;
+  selectionHelpers?: TSelectionHelper;
   shouldRenderByDefault?: boolean;
   isEpic?: boolean;
 }
@@ -166,6 +168,7 @@ export const KanbanIssueBlock = observer(function KanbanIssueBlock(props: IssueB
     quickActions,
     canEditProperties,
     scrollableContainerRef,
+    selectionHelpers,
     shouldRenderByDefault,
     isEpic = false,
   } = props;
@@ -250,6 +253,9 @@ export const KanbanIssueBlock = observer(function KanbanIssueBlock(props: IssueB
 
   if (!issue) return null;
 
+  const isIssueSelected = selectionHelpers?.getIsEntitySelected(issueId) ?? false;
+  const canSelectIssues = selectionHelpers && !selectionHelpers.isSelectionDisabled;
+
   return (
     <>
       <DropIndicator isVisible={!isCurrentBlockDragging && isDraggingOverBlock} />
@@ -291,15 +297,33 @@ export const KanbanIssueBlock = observer(function KanbanIssueBlock(props: IssueB
             verticalOffset={200}
             defaultValue={shouldRenderByDefault}
           >
-            <KanbanIssueDetailsBlock
-              cardRef={cardRef}
-              issue={issue}
-              displayProperties={displayProperties}
-              updateIssue={updateIssue}
-              quickActions={quickActions}
-              isReadOnly={!canEditIssueProperties}
-              isEpic={isEpic}
-            />
+            <div className="flex items-start gap-2">
+              {canSelectIssues && (
+                <Checkbox
+                  className="size-3.5 !outline-none mt-0.5"
+                  iconClassName="size-3"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    selectionHelpers.handleEntityClick(e, issueId, groupId);
+                  }}
+                  checked={isIssueSelected}
+                  data-entity-group-id={groupId}
+                  data-entity-id={issueId}
+                  readOnly
+                />
+              )}
+              <div className="flex-1 min-w-0">
+                <KanbanIssueDetailsBlock
+                  cardRef={cardRef}
+                  issue={issue}
+                  displayProperties={displayProperties}
+                  updateIssue={updateIssue}
+                  quickActions={quickActions}
+                  isReadOnly={!canEditIssueProperties}
+                  isEpic={isEpic}
+                />
+              </div>
+            </div>
           </RenderIfVisible>
         </ControlLink>
       </div>

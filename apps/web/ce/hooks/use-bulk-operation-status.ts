@@ -4,4 +4,5 @@
  * See the LICENSE file for details.
  */
 
-export const useBulkOperationStatus = () => false;
+// Bulk operations are enabled for community edition
+export const useBulkOperationStatus = () => true;
