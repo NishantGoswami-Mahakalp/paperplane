@@ -113,9 +113,9 @@ class IntakeIssueListCreateAPIEndpoint(BaseAPIView):
         return self.paginate(
             request=request,
             queryset=(issue_queryset),
-            on_results=lambda intake_issues: IntakeIssueSerializer(
-                intake_issues, many=True, fields=self.fields, expand=self.expand
-            ).data,
+            on_results=lambda intake_issues: (
+                IntakeIssueSerializer(intake_issues, many=True, fields=self.fields, expand=self.expand).data
+            ),
         )
 
     @intake_docs(
@@ -492,3 +492,59 @@ class IntakeIssueDetailAPIEndpoint(BaseAPIView):
 
         intake_issue.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class EmailIngestionAPIEndpoint(BaseAPIView):
+    """
+    Email ingestion endpoint for receiving emails via webhook.
+    Accepts raw email content and creates work items.
+    """
+
+    permission_classes = []
+
+    def post(self, request):
+        """
+        Ingest an email and create a work item.
+
+        Expects the raw email content in the request body.
+        The email is parsed to extract subject, body, and attachments.
+        """
+        raw_email = request.body
+
+        if not raw_email:
+            return Response(
+                {"error": "Email content is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        message_id = request.headers.get("Message-ID") or request.headers.get("X-Message-ID")
+
+        from plane.utils.email_ingestion import EmailIngestionService
+
+        service = EmailIngestionService()
+        result = service.ingest(raw_email, message_id=message_id)
+
+        if result.is_duplicate:
+            return Response(
+                {
+                    "status": "duplicate",
+                    "message": result.message,
+                    "work_item_id": result.work_item_id,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        if not result.success:
+            return Response(
+                {"error": result.message},
+                status=result.status_code,
+            )
+
+        return Response(
+            {
+                "status": "created",
+                "message": result.message,
+                "work_item_id": result.work_item_id,
+            },
+            status=status.HTTP_201_CREATED,
+        )

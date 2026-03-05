@@ -66,6 +66,7 @@ from .project import (
     ProjectUserProperty,
 )
 from .project_email_alias import ProjectEmailAlias
+from .received_email import ReceivedEmail
 from .session import Session
 from .social_connection import SocialLoginConnection
 from .state import State, StateGroup, DEFAULT_STATES
@@ -101,3 +102,16 @@ from .sticky import Sticky
 from .description import Description, DescriptionVersion
 
 from .workflow import WorkflowState, WorkflowTransition
+
+from .epic import (
+    Epic,
+    EpicIssue,
+    EpicLink,
+    EpicMember,
+    EpicUserProperties,
+    Initiative,
+    InitiativeEpic,
+    InitiativeLink,
+    InitiativeMember,
+    InitiativeUserProperties,
+)

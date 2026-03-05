@@ -53,6 +53,7 @@ from .member import ProjectMemberListCreateAPIEndpoint, ProjectMemberDetailAPIEn
 from .intake import (
     IntakeIssueListCreateAPIEndpoint,
     IntakeIssueDetailAPIEndpoint,
+    EmailIngestionAPIEndpoint,
 )
 
 from .asset import UserAssetEndpoint, UserServerAssetEndpoint, GenericAssetEndpoint
