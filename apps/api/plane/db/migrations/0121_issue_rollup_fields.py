@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import migrations, models
 
 
@@ -20,8 +21,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="issue",
             name="child_issues_progress",
-            field=models.FloatField(
-                default=0.0, validators=[models.MinValueValidator(0.0), models.MaxValueValidator(100.0)]
-            ),
+            field=models.FloatField(default=0.0, validators=[MinValueValidator(0.0), MaxValueValidator(100.0)]),
         ),
     ]
