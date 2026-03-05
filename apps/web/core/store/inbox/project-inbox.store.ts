@@ -80,6 +80,8 @@ export interface IProjectInboxStore {
     data: Partial<TInboxIssue>
   ) => Promise<TInboxIssue | undefined>;
   deleteInboxIssue: (workspaceSlug: string, projectId: string, inboxIssueId: string) => Promise<void>;
+  bulkConvertIssues: (workspaceSlug: string, projectId: string, issueIds: string[]) => Promise<{ converted_count: number; errors: { issue_id: string; error: string }[] }>;
+  bulkRejectIssues: (workspaceSlug: string, projectId: string, issueIds: string[]) => Promise<{ rejected_count: number; errors: { issue_id: string; error: string }[] }>;
 }
 
 export class ProjectInboxStore implements IProjectInboxStore {
@@ -256,6 +258,14 @@ export class ProjectInboxStore implements IProjectInboxStore {
           set(this.inboxIssues, [inbox?.issue?.id], new InboxIssueStore(workspaceSlug, projectId, inbox, this.store));
       });
     }
+  };
+
+  bulkConvertIssues = async (workspaceSlug: string, projectId: string, issueIds: string[]) => {
+    return this.inboxIssueService.bulkConvert(workspaceSlug, projectId, issueIds);
+  };
+
+  bulkRejectIssues = async (workspaceSlug: string, projectId: string, issueIds: string[]) => {
+    return this.inboxIssueService.bulkReject(workspaceSlug, projectId, issueIds);
   };
 
   // actions

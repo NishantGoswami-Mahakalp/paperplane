@@ -83,4 +83,24 @@ export class InboxIssueService extends APIService {
         throw error?.response?.data;
       });
   }
+
+  async bulkConvert(workspaceSlug: string, projectId: string, issueIds: string[]): Promise<{ converted_count: number; errors: { issue_id: string; error: string }[] }> {
+    return this.post(`/api/workspaces/${workspaceSlug}/projects/${projectId}/intake-issues/bulk-actions/`, {
+      issue_ids: issueIds,
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async bulkReject(workspaceSlug: string, projectId: string, issueIds: string[]): Promise<{ rejected_count: number; errors: { issue_id: string; error: string }[] }> {
+    return this.delete(`/api/workspaces/${workspaceSlug}/projects/${projectId}/intake-issues/bulk-actions/`, {
+      data: { issue_ids: issueIds },
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
 }

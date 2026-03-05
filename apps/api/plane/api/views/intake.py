@@ -494,6 +494,162 @@ class IntakeIssueDetailAPIEndpoint(BaseAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class IntakeIssueBulkActionAPIEndpoint(BaseAPIView):
+    """Bulk actions for intake work items - convert (accept) or reject multiple items"""
+
+    permission_classes = [ProjectLitePermission]
+    serializer_class = IntakeIssueSerializer
+
+    def get_intake_and_project(self, slug, project_id):
+        intake = Intake.objects.filter(
+            workspace__slug=slug,
+            project_id=project_id,
+        ).first()
+
+        project = Project.objects.get(workspace__slug=slug, pk=project_id)
+
+        if intake is None or not project.intake_view:
+            return None, None
+
+        return intake, project
+
+    @intake_docs(
+        operation_id="bulk_convert_intake_issues",
+        summary="Bulk convert intake work items",
+        description="Convert (accept) multiple intake work items to issues in one action.",
+        parameters=[
+            WORKSPACE_SLUG_PARAMETER,
+            PROJECT_ID_PARAMETER,
+        ],
+        responses={
+            200: OpenApiResponse(
+                description="Intake work items converted",
+                response=IntakeIssueSerializer,
+            ),
+        },
+    )
+    def post(self, request, slug, project_id):
+        """Convert multiple intake work items to issues"""
+        intake, project = self.get_intake_and_project(slug, project_id)
+        if intake is None:
+            return Response(
+                {"error": "Intake is not enabled for this project"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        issue_ids = request.data.get("issue_ids", [])
+        if not issue_ids:
+            return Response(
+                {"error": "issue_ids is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        default_state = State.objects.filter(workspace__slug=slug, project_id=project_id, default=True).first()
+
+        if not default_state:
+            return Response(
+                {"error": "No default state found for the project"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        converted_count = 0
+        errors = []
+
+        for issue_id in issue_ids:
+            try:
+                intake_issue = IntakeIssue.objects.get(
+                    issue_id=issue_id,
+                    workspace__slug=slug,
+                    project_id=project_id,
+                    intake_id=intake.id,
+                )
+
+                if intake_issue.status != -2:
+                    errors.append({"issue_id": str(issue_id), "error": "Already processed"})
+                    continue
+
+                intake_issue.status = 1
+                intake_issue.save()
+
+                issue = intake_issue.issue
+                if issue.state and issue.state.group == StateGroup.TRIAGE.value:
+                    issue.state = default_state
+                    issue.save()
+
+                converted_count += 1
+            except IntakeIssue.DoesNotExist:
+                errors.append({"issue_id": str(issue_id), "error": "Not found"})
+
+        return Response(
+            {
+                "converted_count": converted_count,
+                "errors": errors,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @intake_docs(
+        operation_id="bulk_reject_intake_issues",
+        summary="Bulk reject intake work items",
+        description="Reject multiple intake work items in one action.",
+        parameters=[
+            WORKSPACE_SLUG_PARAMETER,
+            PROJECT_ID_PARAMETER,
+        ],
+        responses={
+            200: OpenApiResponse(
+                description="Intake work items rejected",
+                response=IntakeIssueSerializer,
+            ),
+        },
+    )
+    def delete(self, request, slug, project_id):
+        """Reject multiple intake work items"""
+        intake, project = self.get_intake_and_project(slug, project_id)
+        if intake is None:
+            return Response(
+                {"error": "Intake is not enabled for this project"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        issue_ids = request.data.get("issue_ids", [])
+        if not issue_ids:
+            return Response(
+                {"error": "issue_ids is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        rejected_count = 0
+        errors = []
+
+        for issue_id in issue_ids:
+            try:
+                intake_issue = IntakeIssue.objects.get(
+                    issue_id=issue_id,
+                    workspace__slug=slug,
+                    project_id=project_id,
+                    intake_id=intake.id,
+                )
+
+                if intake_issue.status != -2:
+                    errors.append({"issue_id": str(issue_id), "error": "Already processed"})
+                    continue
+
+                intake_issue.status = -1
+                intake_issue.save()
+                rejected_count += 1
+            except IntakeIssue.DoesNotExist:
+                errors.append({"issue_id": str(issue_id), "error": "Not found"})
+
+        return Response(
+            {
+                "rejected_count": rejected_count,
+                "errors": errors,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 class EmailIngestionAPIEndpoint(BaseAPIView):
     """
     Email ingestion endpoint for receiving emails via webhook.
