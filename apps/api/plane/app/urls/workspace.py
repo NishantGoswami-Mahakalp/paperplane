@@ -41,6 +41,10 @@ from plane.app.views import (
     ForgejoImporterCreateEndpoint,
     ForgejoRepositorySyncEndpoint,
     ForgejoRepositorySyncListEndpoint,
+    TeamspaceViewSet,
+    TeamspaceMemberViewSet,
+    TeamspaceProjectViewSet,
+    TeamspaceProjectsByProjectAPIEndpoint,
 )
 
 
@@ -287,5 +291,41 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/forgejo-syncs/<uuid:sync_id>/",
         ForgejoRepositorySyncEndpoint.as_view(),
         name="forgejo-sync-detail",
+    ),
+    # Teamspaces
+    path(
+        "workspaces/<str:slug>/teamspaces/",
+        TeamspaceViewSet.as_view({"get": "list", "post": "create"}),
+        name="teamspace",
+    ),
+    path(
+        "workspaces/<str:slug>/teamspaces/<uuid:pk>/",
+        TeamspaceViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"}),
+        name="teamspace-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/teamspaces/<uuid:teamspace_id>/members/",
+        TeamspaceMemberViewSet.as_view({"get": "list", "post": "create"}),
+        name="teamspace-member",
+    ),
+    path(
+        "workspaces/<str:slug>/teamspaces/<uuid:teamspace_id>/members/<uuid:pk>/",
+        TeamspaceMemberViewSet.as_view({"get": "retrieve", "patch": "partial_update", "delete": "destroy"}),
+        name="teamspace-member-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/teamspaces/<uuid:teamspace_id>/projects/",
+        TeamspaceProjectViewSet.as_view({"get": "list", "post": "create"}),
+        name="teamspace-project",
+    ),
+    path(
+        "workspaces/<str:slug>/teamspaces/<uuid:teamspace_id>/projects/<uuid:pk>/",
+        TeamspaceProjectViewSet.as_view({"delete": "destroy"}),
+        name="teamspace-project-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/teamspace-projects/",
+        TeamspaceProjectsByProjectAPIEndpoint.as_view(),
+        name="teamspace-projects-by-project",
     ),
 ]

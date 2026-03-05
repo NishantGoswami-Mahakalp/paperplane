@@ -275,3 +275,10 @@ from .work_item_type import (
     ProjectWorkItemTypeViewSet,
     WorkItemTypeFieldViewSet,
 )
+
+from .workspace.teamspace import (
+    TeamspaceViewSet,
+    TeamspaceMemberViewSet,
+    TeamspaceProjectViewSet,
+    TeamspaceProjectsByProjectAPIEndpoint,
+)

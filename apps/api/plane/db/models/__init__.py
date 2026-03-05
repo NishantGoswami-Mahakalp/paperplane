@@ -96,6 +96,8 @@ from .workspace import (
     WorkspaceHomePreference,
     WorkspaceUserPreference,
     Team,
+    TeamspaceMember,
+    TeamspaceProject,
 )
 
 from .worklog import WorkLog

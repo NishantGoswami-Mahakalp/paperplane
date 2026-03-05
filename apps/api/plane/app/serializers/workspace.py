@@ -25,6 +25,9 @@ from plane.db.models import (
     WorkspaceHomePreference,
     Sticky,
     WorkspaceUserPreference,
+    Team,
+    TeamspaceMember,
+    TeamspaceProject,
 )
 from plane.utils.constants import RESTRICTED_WORKSPACE_SLUGS
 from plane.utils.url import contains_url
@@ -331,3 +334,44 @@ class WorkspaceUserPreferenceSerializer(BaseSerializer):
         model = WorkspaceUserPreference
         fields = ["key", "is_pinned", "sort_order"]
         read_only_fields = ["workspace", "created_by", "updated_by"]
+
+
+class TeamspaceSerializer(BaseSerializer):
+    class Meta:
+        model = Team
+        fields = "__all__"
+        read_only_fields = ["workspace", "created_by", "updated_by"]
+
+
+class TeamspaceMemberSerializer(BaseSerializer):
+    member = UserLiteSerializer(read_only=True)
+
+    class Meta:
+        model = TeamspaceMember
+        fields = "__all__"
+
+
+class TeamspaceMemberLiteSerializer(BaseSerializer):
+    class Meta:
+        model = TeamspaceMember
+        fields = ["id", "member", "role", "created_at", "updated_at"]
+
+
+class TeamspaceProjectSerializer(BaseSerializer):
+    project_id = serializers.UUIDField(source="project_id", read_only=True)
+    project_name = serializers.CharField(source="project.name", read_only=True)
+    project_identifier = serializers.CharField(source="project.identifier", read_only=True)
+
+    class Meta:
+        model = TeamspaceProject
+        fields = [
+            "id",
+            "team",
+            "project",
+            "project_id",
+            "project_name",
+            "project_identifier",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["team", "created_by", "updated_by"]

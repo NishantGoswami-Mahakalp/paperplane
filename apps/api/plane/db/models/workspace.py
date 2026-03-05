@@ -259,10 +259,19 @@ class WorkspaceMemberInvite(BaseModel):
 
 
 class Team(BaseModel):
+    class Visibility(models.TextChoices):
+        PRIVATE = "private", "Private"
+        WORKSPACE = "workspace", "Workspace"
+
     name = models.CharField(max_length=255, verbose_name="Team Name")
     description = models.TextField(verbose_name="Team Description", blank=True)
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name="workspace_team")
     logo_props = models.JSONField(default=dict)
+    visibility = models.CharField(
+        max_length=20,
+        choices=Visibility.choices,
+        default=Visibility.WORKSPACE,
+    )
 
     def __str__(self):
         """Return name of the team"""
@@ -281,6 +290,63 @@ class Team(BaseModel):
         verbose_name_plural = "Teams"
         db_table = "teams"
         ordering = ("-created_at",)
+
+
+TEAMSPACE_MEMBER_ROLE_CHOICES = ((20, "Admin"), (15, "Member"), (5, "Viewer"))
+
+
+class TeamspaceMember(BaseModel):
+    class Role(models.TextChoices):
+        ADMIN = "admin", "Admin"
+        MEMBER = "member", "Member"
+        VIEWER = "viewer", "Viewer"
+
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="teamspace_members")
+    member = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="teamspace_memberships",
+    )
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.MEMBER)
+
+    class Meta:
+        unique_together = ["team", "member", "deleted_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["team", "member"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="teamspace_member_unique_team_member_when_deleted_at_null",
+            )
+        ]
+        verbose_name = "Teamspace Member"
+        verbose_name_plural = "Teamspace Members"
+        db_table = "teamspace_members"
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.member.email} <{self.team.name}>"
+
+
+class TeamspaceProject(BaseModel):
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="teamspace_projects")
+    project = models.ForeignKey("db.Project", on_delete=models.CASCADE, related_name="teamspace_links")
+
+    class Meta:
+        unique_together = ["team", "project", "deleted_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["team", "project"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="teamspace_project_unique_team_project_when_deleted_at_null",
+            )
+        ]
+        verbose_name = "Teamspace Project"
+        verbose_name_plural = "Teamspace Projects"
+        db_table = "teamspace_projects"
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.project.name} <{self.team.name}>"
 
 
 class WorkspaceTheme(BaseModel):

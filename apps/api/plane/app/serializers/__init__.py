@@ -27,6 +27,10 @@ from .workspace import (
     WorkspaceRecentVisitSerializer,
     WorkspaceHomePreferenceSerializer,
     StickySerializer,
+    TeamspaceSerializer,
+    TeamspaceMemberSerializer,
+    TeamspaceMemberLiteSerializer,
+    TeamspaceProjectSerializer,
 )
 from .project import (
     ProjectSerializer,
