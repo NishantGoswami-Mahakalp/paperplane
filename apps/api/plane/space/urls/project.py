@@ -19,6 +19,7 @@ from plane.space.views import (
     ProjectItemCommentsPublicEndpoint,
     ProjectItemActivitiesPublicEndpoint,
     ProjectBoardPublicEndpoint,
+    PageRetrievePublicEndpoint,
 )
 
 urlpatterns = [
@@ -61,6 +62,11 @@ urlpatterns = [
         "public/projects/<uuid:project_id>/items/<uuid:item_id>/activities/",
         ProjectItemActivitiesPublicEndpoint.as_view(),
         name="project-item-activities-public",
+    ),
+    path(
+        "public/projects/<uuid:project_id>/pages/<uuid:page_id>/",
+        PageRetrievePublicEndpoint.as_view(),
+        name="project-page-detail-public",
     ),
     path(
         "anchor/<str:anchor>/cycles/",
