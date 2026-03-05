@@ -138,3 +138,5 @@ from .epic import (
     InitiativeMember,
     InitiativeUserProperties,
 )
+
+from .customer import Customer, CustomerContact, CustomerComment

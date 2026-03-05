@@ -103,3 +103,9 @@ from .template import (
     TemplateVersionSerializer,
     TemplateExportSerializer,
 )
+from .customer import (
+    CustomerSerializer,
+    CustomerContactSerializer,
+    CustomerLiteSerializer,
+    CustomerCommentSerializer,
+)

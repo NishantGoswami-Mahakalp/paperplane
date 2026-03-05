@@ -82,3 +82,13 @@ from .template import (
     PageTemplateDetailAPIEndpoint,
     PageTemplateInstantiateAPIEndpoint,
 )
+
+from .customer import (
+    CustomerListCreateAPIEndpoint,
+    CustomerDetailAPIEndpoint,
+    CustomerContactsAPIEndpoint,
+    CustomerContactDetailAPIEndpoint,
+    CustomerItemsAPIEndpoint,
+    CustomerCommentsAPIEndpoint,
+    CustomerCommentDetailAPIEndpoint,
+)
