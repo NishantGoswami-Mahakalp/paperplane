@@ -106,5 +106,8 @@ export const orderProjects = (projects: TProject[], orderByKey: TProjectOrderByO
   if (orderByKey === "members_length") orderedProjects = sortBy(projects, [(p) => p.members?.length]);
   if (orderByKey === "-members_length") orderedProjects = sortBy(projects, [(p) => p.members?.length]).toReversed();
 
-  return orderedProjects;
+  const favoriteProjects = orderedProjects.filter((p) => p.is_favorite);
+  const nonFavoriteProjects = orderedProjects.filter((p) => !p.is_favorite);
+
+  return [...favoriteProjects, ...nonFavoriteProjects];
 };

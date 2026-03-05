@@ -243,9 +243,22 @@ export class ProjectStore implements IProjectStore {
     let projects = Object.values(this.projectMap ?? {});
     projects = sortBy(projects, "sort_order");
 
-    const projectIds = projects
-      .filter((project) => project.workspace === currentWorkspace.id && !!project.member_role && !project.archived_at)
-      .map((project) => project.id);
+    const favoriteProjects = projects.filter(
+      (project) =>
+        project.workspace === currentWorkspace.id &&
+        !!project.member_role &&
+        project.is_favorite &&
+        !project.archived_at
+    );
+    const nonFavoriteProjects = projects.filter(
+      (project) =>
+        project.workspace === currentWorkspace.id &&
+        !!project.member_role &&
+        !project.is_favorite &&
+        !project.archived_at
+    );
+
+    const projectIds = [...favoriteProjects, ...nonFavoriteProjects].map((project) => project.id);
     return projectIds;
   }
 
