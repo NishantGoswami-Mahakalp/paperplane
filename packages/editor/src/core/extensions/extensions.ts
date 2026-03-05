@@ -18,6 +18,7 @@ import {
   CustomCodeBlockExtension,
   CustomCodeInlineExtension,
   CustomColorExtension,
+  CustomEmbedExtension,
   CustomHorizontalRule,
   CustomKeymap,
   CustomLinkExtension,
@@ -121,6 +122,7 @@ export const CoreEditorExtensions = (args: TArguments): Extensions => {
     CustomColorExtension,
     CustomTextAlignExtension,
     CustomCalloutExtension,
+    CustomEmbedExtension(),
     UtilityExtension({
       disabledExtensions,
       flaggedExtensions,

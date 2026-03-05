@@ -192,6 +192,11 @@ export const insertCallout = (editor: Editor, range?: Range) => {
   else editor.chain().focus().insertCallout().run();
 };
 
+export const insertEmbed = (editor: Editor, attributes: Record<string, unknown>, range?: Range) => {
+  if (range) editor.chain().focus().deleteRange(range).insertEmbed(attributes).run();
+  else editor.chain().focus().insertEmbed(attributes).run();
+};
+
 export const openEmojiPicker = (editor: Editor, range?: Range) => {
   if (range) editor.chain().focus().deleteRange(range).run();
   const emojiStorage = editor.storage.emoji as ExtendedEmojiStorage;
