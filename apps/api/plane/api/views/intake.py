@@ -27,7 +27,7 @@ from plane.api.serializers import (
 )
 from plane.app.permissions import ProjectLitePermission
 from plane.bgtasks.issue_activities_task import issue_activity
-from plane.db.models import Intake, IntakeIssue, Issue, Project, ProjectMember, State, StateGroup
+from plane.db.models import Intake, IntakeIssue, Issue, Project, ProjectMember, State, StateGroup, Customer
 from plane.utils.host import base_host
 from .base import BaseAPIView
 from plane.db.models.intake import SourceType
@@ -196,13 +196,28 @@ class IntakeIssueListCreateAPIEndpoint(BaseAPIView):
             state_id=triage_state.id,
         )
 
+        source_email = request.data.get("source_email")
+        customer = None
+        if source_email:
+            customer = Customer.objects.filter(
+                workspace=project.workspace,
+                email__iexact=source_email,
+                deleted_at__isnull=True,
+            ).first()
+
         # create an intake issue
         intake_issue = IntakeIssue.objects.create(
             intake_id=intake.id,
             project_id=project_id,
             issue=issue,
             source=SourceType.IN_APP,
+            source_email=source_email,
+            customer=customer,
         )
+
+        if customer:
+            issue.customer = customer
+            issue.save(update_fields=["customer"])
         # Create an Issue Activity
         issue_activity.delay(
             type="issue.activity.created",
