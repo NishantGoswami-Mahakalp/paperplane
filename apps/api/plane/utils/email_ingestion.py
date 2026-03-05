@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from __future__ import annotations
+
 # Python imports
 import hashlib
 import logging
@@ -194,10 +196,10 @@ class EmailIngestionService:
 
     def _check_duplicate(
         self,
-        parsed: ParsedEmail,
-        project: Project,
+        parsed: "ParsedEmail",
+        project: "Project",
         message_id: Optional[str] = None,
-    ) -> Optional[ReceivedEmail]:
+    ) -> Optional["ReceivedEmail"]:
         if message_id:
             existing = self.ReceivedEmail.objects.filter(
                 message_id=message_id,
@@ -220,7 +222,7 @@ class EmailIngestionService:
         normalized = subject.strip().lower()
         return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
-    def _get_description_html(self, parsed: ParsedEmail) -> str:
+    def _get_description_html(self, parsed: "ParsedEmail") -> str:
         if parsed.body_html:
             return self.parser.sanitize_html(parsed.body_html)
         if parsed.body_text:
@@ -229,10 +231,10 @@ class EmailIngestionService:
 
     def _create_attachments(
         self,
-        issue: Issue,
-        parsed: ParsedEmail,
-        project: Project,
-        workspace: Workspace,
+        issue: "Issue",
+        parsed: "ParsedEmail",
+        project: "Project",
+        workspace: "Workspace",
         actor,
     ) -> list:
         from io import BytesIO
