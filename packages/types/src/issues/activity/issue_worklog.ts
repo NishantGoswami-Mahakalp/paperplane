@@ -48,3 +48,16 @@ export type TCreateWorklogPayload = {
 };
 
 export type TUpdateWorklogPayload = Partial<TCreateWorklogPayload>;
+
+export type TTimerSession = {
+  id: string;
+  item_id: string;
+  project_id: string;
+  workspace_id: string;
+  user_id: string;
+  started_at: string;
+  ended_at: string | null;
+  is_running: boolean;
+  created_at: string;
+  updated_at: string;
+};

@@ -265,4 +265,6 @@ from .issue.worklog import (
     TimerStartEndpoint,
     TimerStopEndpoint,
     TimerDetailEndpoint,
+    WorklogTimeReportsEndpoint,
+    WorklogExportEndpoint,
 )

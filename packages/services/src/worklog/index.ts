@@ -4,7 +4,4 @@
  * See the LICENSE file for details.
  */
 
-export * from "./timer-widget";
-export * from "./worklog-list";
-export * from "./manual-worklog-modal";
-export * from "./time-reports";
+export * from "./worklog.service";

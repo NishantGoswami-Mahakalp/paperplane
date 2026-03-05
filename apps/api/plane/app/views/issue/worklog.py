@@ -3,8 +3,15 @@
 # See the LICENSE file for details.
 
 # Django imports
+from django.db.models import Sum
 from django.db import transaction
 from django.utils import timezone
+from datetime import timedelta
+
+# Third party imports
+from rest_framework import status
+from rest_framework.response import Response
+from django.http import HttpResponse
 
 # Third party imports
 from rest_framework import status
@@ -167,3 +174,113 @@ class TimerDetailEndpoint(BaseAPIView):
         from plane.app.serializers.timer_session import TimerSessionSerializer
 
         return Response(TimerSessionSerializer(timer).data, status=status.HTTP_200_OK)
+
+
+class WorklogTimeReportsEndpoint(BaseAPIView):
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
+    def get(self, request, slug, project_id, item_id):
+        from datetime import datetime
+
+        period = request.query_params.get("period", "daily")
+        start_date = request.query_params.get("start_date")
+        end_date = request.query_params.get("end_date")
+
+        worklogs = WorkLog.objects.filter(
+            item_id=item_id,
+            project_id=project_id,
+            workspace__slug=slug,
+        )
+
+        if start_date:
+            worklogs = worklogs.filter(started_at__gte=start_date)
+        if end_date:
+            worklogs = worklogs.filter(started_at__lte=end_date)
+
+        worklogs = worklogs.order_by("-started_at")
+
+        if period == "weekly":
+            from django.db.models.functions import TruncDate
+            from django.db.models import DateField
+
+            grouped = (
+                worklogs.annotate(day=TruncDate("started_at"))
+                .values("day")
+                .annotate(
+                    total_duration=Sum("duration_minutes"),
+                    count=Sum("id"),
+                )
+            )
+            summaries = [
+                {
+                    "date": str(item["day"]),
+                    "total_minutes": item["total_duration"] or 0,
+                    "worklog_count": worklogs.filter(started_at__date=item["day"]).count(),
+                }
+                for item in grouped
+            ]
+        else:
+            summaries = []
+            daily_data = (
+                worklogs.values("started_at__date")
+                .annotate(total_duration=Sum("duration_minutes"))
+                .order_by("-started_at__date")
+            )
+            for item in daily_data:
+                summaries.append(
+                    {
+                        "date": str(item["started_at__date"]),
+                        "total_minutes": item["total_duration"] or 0,
+                        "worklog_count": worklogs.filter(started_at__date=item["started_at__date"]).count(),
+                    }
+                )
+
+        total_minutes = sum(s["total_minutes"] for s in summaries)
+        total_worklogs = sum(s["worklog_count"] for s in summaries)
+
+        return Response(
+            {
+                "summaries": summaries,
+                "total_minutes": total_minutes,
+                "total_worklogs": total_worklogs,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class WorklogExportEndpoint(BaseAPIView):
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])
+    def get(self, request, slug, project_id, item_id):
+        start_date = request.query_params.get("start_date")
+        end_date = request.query_params.get("end_date")
+
+        worklogs = WorkLog.objects.filter(
+            item_id=item_id,
+            project_id=project_id,
+            workspace__slug=slug,
+        ).select_related("user", "item", "project")
+
+        if start_date:
+            worklogs = worklogs.filter(started_at__gte=start_date)
+        if end_date:
+            worklogs = worklogs.filter(started_at__lte=end_date)
+
+        worklogs = worklogs.order_by("-started_at")
+
+        csv_data = "Date,Issue,Description,Duration (minutes),Started At,Ended At,User\n"
+        for worklog in worklogs:
+            issue_name = worklog.item.name if worklog.item else ""
+            description = worklog.description.replace('"', '""') if worklog.description else ""
+            user_name = worklog.user.display_name if worklog.user else ""
+            csv_data += (
+                f'"{worklog.started_at.date()}",'
+                f'"{issue_name}",'
+                f'"{description}",'
+                f'"{worklog.duration_minutes}",'
+                f'"{worklog.started_at}",'
+                f'"{worklog.ended_at or ""}",'
+                f'"{user_name}"\n'
+            )
+
+        response = HttpResponse(csv_data, content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="worklogs_{item_id}_{timezone.now().date()}.csv"'
+        return response

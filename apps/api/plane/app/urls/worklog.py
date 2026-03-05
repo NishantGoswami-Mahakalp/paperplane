@@ -10,6 +10,8 @@ from plane.app.views import (
     TimerStartEndpoint,
     TimerStopEndpoint,
     TimerDetailEndpoint,
+    WorklogTimeReportsEndpoint,
+    WorklogExportEndpoint,
 )
 
 urlpatterns = [
@@ -44,5 +46,15 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/items/<uuid:item_id>/timer/",
         TimerDetailEndpoint.as_view(),
         name="timer-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/items/<uuid:item_id>/worklogs/reports/",
+        WorklogTimeReportsEndpoint.as_view(),
+        name="worklog-reports",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/items/<uuid:item_id>/worklogs/export/",
+        WorklogExportEndpoint.as_view(),
+        name="worklog-export",
     ),
 ]
