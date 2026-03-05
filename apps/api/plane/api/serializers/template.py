@@ -17,6 +17,24 @@ def get_template_type_choices():
     return TemplateType.CHOICES
 
 
+def get_issue_template_priority_choices():
+    from plane.db.models.template import IssueTemplate
+
+    return IssueTemplate.PRIORITY_CHOICES
+
+
+def get_page_template_access_choices():
+    from plane.db.models.template import PageTemplate
+
+    return PageTemplate.ACCESS_CHOICES
+
+
+def get_page_template_default_access():
+    from plane.db.models.template import PageTemplate
+
+    return PageTemplate.PRIVATE_ACCESS
+
+
 class TemplateFieldSerializer(BaseSerializer):
     class Meta:
         model = TemplateField
@@ -161,7 +179,7 @@ class IssueTemplateCreateSerializer(BaseSerializer):
     description_html = serializers.CharField(required=False, default="<p></p>", allow_blank=True)
     description_json = serializers.JSONField(required=False, default=dict)
     priority = serializers.ChoiceField(
-        choices=IssueTemplate.PRIORITY_CHOICES,
+        choices=get_issue_template_priority_choices(),
         required=False,
         default="none",
     )
@@ -244,9 +262,9 @@ class PageTemplateCreateSerializer(BaseSerializer):
     description_json = serializers.JSONField(required=False, default=dict)
     color = serializers.CharField(required=False, default="", max_length=255, allow_blank=True)
     access = serializers.ChoiceField(
-        choices=PageTemplate.ACCESS_CHOICES,
+        choices=get_page_template_access_choices(),
         required=False,
-        default=PageTemplate.PRIVATE_ACCESS,
+        default=get_page_template_default_access(),
     )
     is_locked = serializers.BooleanField(required=False, default=False)
     view_props = serializers.JSONField(required=False, default=dict)
