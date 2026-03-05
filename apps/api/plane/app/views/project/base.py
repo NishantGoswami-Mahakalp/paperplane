@@ -21,6 +21,7 @@ from plane.app.serializers import (
     DeployBoardSerializer,
     ProjectListSerializer,
     ProjectSerializer,
+    ProjectWorkspaceListSerializer,
 )
 from plane.app.views.base import BaseAPIView, BaseViewSet
 from plane.bgtasks.recent_visited_task import recent_visited_task
@@ -167,28 +168,6 @@ class ProjectViewSet(BaseViewSet):
             .annotate(inbox_view=F("intake_view"))
             .annotate(sort_order=Subquery(sort_order))
             .distinct()
-        ).values(
-            "id",
-            "name",
-            "identifier",
-            "sort_order",
-            "logo_props",
-            "member_role",
-            "intake_count",
-            "archived_at",
-            "workspace",
-            "cycle_view",
-            "issue_views_view",
-            "module_view",
-            "page_view",
-            "inbox_view",
-            "guest_view_all_features",
-            "project_lead",
-            "network",
-            "created_at",
-            "updated_at",
-            "created_by",
-            "updated_by",
         )
 
         if WorkspaceMember.objects.filter(
@@ -215,7 +194,69 @@ class ProjectViewSet(BaseViewSet):
                 )
                 | Q(network=2)
             )
-        return Response(projects, status=status.HTTP_200_OK)
+
+        my_projects = request.GET.get("my_projects", "false").lower() == "true"
+        favorites = request.GET.get("favorites", "false").lower() == "true"
+        archived = request.GET.get("archived", "false").lower() == "true"
+
+        if my_projects:
+            projects = projects.filter(
+                project_projectmember__member=self.request.user, project_projectmember__is_active=True
+            )
+
+        if favorites:
+            projects = projects.filter(
+                is_favorite=Exists(
+                    UserFavorite.objects.filter(
+                        user=self.request.user,
+                        entity_identifier=OuterRef("pk"),
+                        entity_type="project",
+                        project_id=OuterRef("pk"),
+                    )
+                )
+            )
+
+        if archived:
+            projects = projects.filter(archived_at__isnull=False)
+        else:
+            projects = projects.filter(archived_at__isnull=True)
+
+        sort_by = request.GET.get("sort_by", "-created_at")
+        valid_sorts = ["name", "-name", "created_at", "-created_at", "last_activity", "-last_activity"]
+        if sort_by not in valid_sorts:
+            sort_by = "-created_at"
+
+        if sort_by in ["last_activity", "-last_activity"]:
+            from plane.db.models import Issue
+
+            last_activity_subquery = (
+                Issue.objects.filter(project_id=OuterRef("pk")).order_by("-created_at").values("created_at")[:1]
+            )
+            projects = projects.annotate(last_activity=Subquery(last_activity_subquery))
+            sort_field = "last_activity" if sort_by == "last_activity" else "-last_activity"
+        else:
+            sort_field = sort_by
+
+        projects = projects.order_by(sort_field, "name")
+
+        favorite_subquery = UserFavorite.objects.filter(
+            user=self.request.user,
+            entity_identifier=OuterRef("pk"),
+            entity_type="project",
+            project_id=OuterRef("pk"),
+        )
+        projects = projects.annotate(is_favorite=Exists(favorite_subquery))
+
+        if request.GET.get("per_page", False) and request.GET.get("cursor", False):
+            return self.paginate(
+                order_by=sort_field,
+                request=request,
+                queryset=projects,
+                on_results=lambda projects: ProjectWorkspaceListSerializer(projects, many=True).data,
+            )
+
+        serializer = ProjectWorkspaceListSerializer(projects, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @allow_permission(allowed_roles=[ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST], level="WORKSPACE")
     def retrieve(self, request, slug, pk):

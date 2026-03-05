@@ -139,6 +139,31 @@ class ProjectListSerializer(DynamicBaseSerializer):
         fields = "__all__"
 
 
+class ProjectWorkspaceListSerializer(DynamicBaseSerializer):
+    is_favorite = serializers.BooleanField(read_only=True)
+    member_role = serializers.IntegerField(read_only=True)
+    icon = serializers.SerializerMethodField()
+
+    def get_icon(self, obj):
+        if obj.emoji:
+            return obj.emoji
+        if obj.icon_prop:
+            return obj.icon_prop
+        return None
+
+    class Meta:
+        model = Project
+        fields = [
+            "id",
+            "name",
+            "description",
+            "identifier",
+            "icon",
+            "member_role",
+            "is_favorite",
+        ]
+
+
 class ProjectDetailSerializer(BaseSerializer):
     # workspace = WorkSpaceSerializer(read_only=True)
     default_assignee = UserLiteSerializer(read_only=True)
