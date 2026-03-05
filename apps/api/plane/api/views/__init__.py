@@ -85,6 +85,9 @@ from .template import (
     TemplateListCreateAPIEndpoint,
     TemplateDetailAPIEndpoint,
     TemplateVersionListAPIEndpoint,
+    TemplateVersionRestoreAPIEndpoint,
+    TemplateExportAPIEndpoint,
+    TemplateImportAPIEndpoint,
 )
 
 from .customer import (
