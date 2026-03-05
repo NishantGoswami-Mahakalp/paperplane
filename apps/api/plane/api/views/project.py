@@ -36,6 +36,7 @@ from plane.db.models import (
     StateGroup,
     IntakeIssue,
     ProjectPage,
+    Team,
 )
 from plane.bgtasks.webhook_task import model_activity, webhook_activity
 from .base import BaseAPIView
@@ -80,9 +81,15 @@ class ProjectListCreateAPIEndpoint(BaseAPIView):
     use_read_replica = True
 
     def get_queryset(self):
+        teamspace_id = self.request.GET.get("teamspace_id")
+
+        queryset = Project.objects.filter(workspace__slug=self.kwargs.get("slug"))
+
+        if teamspace_id:
+            queryset = queryset.filter(teamspace_id=teamspace_id)
+
         return (
-            Project.objects.filter(workspace__slug=self.kwargs.get("slug"))
-            .filter(
+            queryset.filter(
                 Q(
                     project_projectmember__member=self.request.user,
                     project_projectmember__is_active=True,

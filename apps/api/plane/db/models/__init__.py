@@ -92,6 +92,7 @@ from .workspace import (
     WorkspaceUserLink,
     WorkspaceHomePreference,
     WorkspaceUserPreference,
+    Team,
 )
 
 from .worklog import WorkLog
