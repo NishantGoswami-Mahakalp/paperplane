@@ -150,3 +150,4 @@
 {"actor":"Nishant Goswami","comment":null,"created_at":"2026-03-05T12:28:42Z","event_type":"closed","id":150,"issue_id":"paperplane-umj.2.2","new_value":"Completed","old_value":""}
 {"actor":"Nishant Goswami","comment":null,"created_at":"2026-03-05T12:28:43Z","event_type":"closed","id":151,"issue_id":"paperplane-vg1.1.1","new_value":"Completed","old_value":""}
 {"actor":"Nishant Goswami","comment":null,"created_at":"2026-03-05T12:28:43Z","event_type":"closed","id":152,"issue_id":"paperplane-vg1.1.2","new_value":"Completed","old_value":""}
+{"actor":"Nishant Goswami","comment":null,"created_at":"2026-03-05T12:37:30Z","event_type":"closed","id":153,"issue_id":"paperplane-vg1.2.2","new_value":"Implemented rollup fields and calculations for issue hierarchy","old_value":""}
