@@ -10,6 +10,13 @@ from plane.api.serializers.user import UserLiteSerializer
 from plane.api.serializers.state import StateLiteSerializer
 
 
+# Lazy import to avoid Django app not ready error
+def get_template_type_choices():
+    from plane.db.models.template import TemplateType
+
+    return TemplateType.CHOICES
+
+
 class TemplateFieldSerializer(BaseSerializer):
     class Meta:
         model = TemplateField
@@ -55,7 +62,7 @@ class TemplateSerializer(BaseSerializer):
 class TemplateCreateSerializer(BaseSerializer):
     name = serializers.CharField(required=True, max_length=255)
     description = serializers.CharField(required=False, default="", allow_blank=True)
-    entity_type = serializers.ChoiceField(choices=Template.TemplateType.CHOICES, default="work_item")
+    entity_type = serializers.ChoiceField(choices=get_template_type_choices(), default="work_item")
     schema_version = serializers.IntegerField(required=False, default=1)
     is_active = serializers.BooleanField(required=False, default=True)
     project_id = serializers.UUIDField(required=False, allow_null=True)
