@@ -86,3 +86,13 @@ from .work_item_type import (
     WorkItemTypeFieldSerializer,
     WorkItemTypeFieldCreateSerializer,
 )
+from .page import PageSerializer, PageDetailSerializer
+from .template import (
+    IssueTemplateSerializer,
+    IssueTemplateCreateSerializer,
+    IssueTemplateDetailSerializer,
+    PageTemplateSerializer,
+    PageTemplateCreateSerializer,
+    PageTemplateDetailSerializer,
+    TemplateInstantiateSerializer,
+)

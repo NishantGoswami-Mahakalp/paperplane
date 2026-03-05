@@ -71,6 +71,14 @@ from .received_email import ReceivedEmail
 from .session import Session
 from .social_connection import SocialLoginConnection
 from .state import State, StateGroup, DEFAULT_STATES
+from .template import (
+    IssueTemplate,
+    IssueTemplateLabel,
+    IssueTemplateAssignee,
+    PageTemplate,
+    PageTemplateLabel,
+    TemplateType,
+)
 from .user import Account, Profile, User, BotTypeEnum
 from .view import IssueView
 from .webhook import Webhook, WebhookLog
