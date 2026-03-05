@@ -15,6 +15,8 @@ import type {
   TWidgetStatsResponse,
   TWidgetKeys,
   TWidgetStatsRequestParams,
+  TFilterPreset,
+  TDashboardPreset,
 } from "@plane/types";
 // services
 import { DashboardService } from "@/services/dashboard.service";
@@ -40,6 +42,13 @@ export interface IDashboardStore {
   //        }
   //     }
   //  }
+  // filter presets
+  filterPresets: { [workspaceSlug: string]: TFilterPreset[] };
+  // dashboard presets
+  dashboardPresets: { [workspaceSlug: string]: TDashboardPreset[] };
+  // current active preset
+  activeFilterPresetId: string | null;
+  activeDashboardPresetId: string | null;
   // computed
   homeDashboardWidgets: TWidget[] | undefined;
   // computed actions
@@ -65,6 +74,19 @@ export interface IDashboardStore {
     widgetId: string,
     data: TWidgetFiltersFormData
   ) => Promise<any>;
+  // filter preset actions
+  fetchFilterPresets: (workspaceSlug: string) => Promise<TFilterPreset[]>;
+  createFilterPreset: (workspaceSlug: string, data: Partial<TFilterPreset>) => Promise<TFilterPreset>;
+  updateFilterPreset: (workspaceSlug: string, presetId: string, data: Partial<TFilterPreset>) => Promise<TFilterPreset>;
+  deleteFilterPreset: (workspaceSlug: string, presetId: string) => Promise<void>;
+  setActiveFilterPreset: (presetId: string | null) => void;
+  // dashboard preset actions
+  fetchDashboardPresets: (workspaceSlug: string) => Promise<TDashboardPreset[]>;
+  createDashboardPreset: (workspaceSlug: string, data: Partial<TDashboardPreset>) => Promise<TDashboardPreset>;
+  updateDashboardPreset: (workspaceSlug: string, presetId: string, data: Partial<TDashboardPreset>) => Promise<TDashboardPreset>;
+  deleteDashboardPreset: (workspaceSlug: string, presetId: string) => Promise<void>;
+  setActiveDashboardPreset: (presetId: string | null) => void;
+  applyDashboardPreset: (workspaceSlug: string, preset: TDashboardPreset) => Promise<void>;
 }
 
 export class DashboardStore implements IDashboardStore {
@@ -74,6 +96,13 @@ export class DashboardStore implements IDashboardStore {
   homeDashboardId: string | null = null;
   widgetDetails: { [workspaceSlug: string]: Record<string, TWidget[]> } = {};
   widgetStats: { [workspaceSlug: string]: Record<string, Record<TWidgetKeys, TWidgetStatsResponse>> } = {};
+  // filter presets
+  filterPresets: { [workspaceSlug: string]: TFilterPreset[] } = {};
+  // dashboard presets
+  dashboardPresets: { [workspaceSlug: string]: TDashboardPreset[] } = {};
+  // current active preset
+  activeFilterPresetId: string | null = null;
+  activeDashboardPresetId: string | null = null;
   // stores
   routerStore;
   issueStore;
@@ -88,6 +117,13 @@ export class DashboardStore implements IDashboardStore {
       homeDashboardId: observable.ref,
       widgetDetails: observable,
       widgetStats: observable,
+      // filter presets
+      filterPresets: observable,
+      // dashboard presets
+      dashboardPresets: observable,
+      // active presets
+      activeFilterPresetId: observable.ref,
+      activeDashboardPresetId: observable.ref,
       // computed
       homeDashboardWidgets: computed,
       // fetch actions
@@ -96,6 +132,19 @@ export class DashboardStore implements IDashboardStore {
       // update actions
       updateDashboardWidget: action,
       updateDashboardWidgetFilters: action,
+      // filter preset actions
+      fetchFilterPresets: action,
+      createFilterPreset: action,
+      updateFilterPreset: action,
+      deleteFilterPreset: action,
+      setActiveFilterPreset: action,
+      // dashboard preset actions
+      fetchDashboardPresets: action,
+      createDashboardPreset: action,
+      updateDashboardPreset: action,
+      deleteDashboardPreset: action,
+      setActiveDashboardPreset: action,
+      applyDashboardPreset: action,
     });
 
     // router store
@@ -287,5 +336,187 @@ export class DashboardStore implements IDashboardStore {
       });
       throw error;
     }
+  };
+
+  // Filter Preset Actions
+  fetchFilterPresets = async (workspaceSlug: string): Promise<TFilterPreset[]> => {
+    try {
+      const response = await this.dashboardService.getFilterPresets(workspaceSlug);
+      runInAction(() => {
+        this.filterPresets[workspaceSlug] = response.results;
+      });
+      return response.results;
+    } catch (error) {
+      console.error("Failed to fetch filter presets", error);
+      throw error;
+    }
+  };
+
+  createFilterPreset = async (workspaceSlug: string, data: Partial<TFilterPreset>): Promise<TFilterPreset> => {
+    try {
+      const response = await this.dashboardService.createFilterPreset(workspaceSlug, data);
+      runInAction(() => {
+        if (!this.filterPresets[workspaceSlug]) {
+          this.filterPresets[workspaceSlug] = [];
+        }
+        this.filterPresets[workspaceSlug].push(response);
+      });
+      return response;
+    } catch (error) {
+      console.error("Failed to create filter preset", error);
+      throw error;
+    }
+  };
+
+  updateFilterPreset = async (
+    workspaceSlug: string,
+    presetId: string,
+    data: Partial<TFilterPreset>
+  ): Promise<TFilterPreset> => {
+    const originalPresets = { ...this.filterPresets };
+    try {
+      const response = await this.dashboardService.updateFilterPreset(workspaceSlug, presetId, data);
+      runInAction(() => {
+        const index = this.filterPresets[workspaceSlug]?.findIndex((p) => p.id === presetId);
+        if (index !== undefined && index !== -1) {
+          this.filterPresets[workspaceSlug][index] = response;
+        }
+      });
+      return response;
+    } catch (error) {
+      runInAction(() => {
+        this.filterPresets = originalPresets;
+      });
+      console.error("Failed to update filter preset", error);
+      throw error;
+    }
+  };
+
+  deleteFilterPreset = async (workspaceSlug: string, presetId: string): Promise<void> => {
+    const originalPresets = [...(this.filterPresets[workspaceSlug] || [])];
+    try {
+      await this.dashboardService.deleteFilterPreset(workspaceSlug, presetId);
+      runInAction(() => {
+        this.filterPresets[workspaceSlug] = this.filterPresets[workspaceSlug]?.filter((p) => p.id !== presetId);
+        if (this.activeFilterPresetId === presetId) {
+          this.activeFilterPresetId = null;
+        }
+      });
+    } catch (error) {
+      runInAction(() => {
+        this.filterPresets[workspaceSlug] = originalPresets;
+      });
+      console.error("Failed to delete filter preset", error);
+      throw error;
+    }
+  };
+
+  setActiveFilterPreset = (presetId: string | null) => {
+    this.activeFilterPresetId = presetId;
+  };
+
+  // Dashboard Preset Actions
+  fetchDashboardPresets = async (workspaceSlug: string): Promise<TDashboardPreset[]> => {
+    try {
+      const response = await this.dashboardService.getDashboardPresets(workspaceSlug);
+      runInAction(() => {
+        this.dashboardPresets[workspaceSlug] = response.results;
+      });
+      return response.results;
+    } catch (error) {
+      console.error("Failed to fetch dashboard presets", error);
+      throw error;
+    }
+  };
+
+  createDashboardPreset = async (workspaceSlug: string, data: Partial<TDashboardPreset>): Promise<TDashboardPreset> => {
+    try {
+      const response = await this.dashboardService.createDashboardPreset(workspaceSlug, data);
+      runInAction(() => {
+        if (!this.dashboardPresets[workspaceSlug]) {
+          this.dashboardPresets[workspaceSlug] = [];
+        }
+        this.dashboardPresets[workspaceSlug].push(response);
+      });
+      return response;
+    } catch (error) {
+      console.error("Failed to create dashboard preset", error);
+      throw error;
+    }
+  };
+
+  updateDashboardPreset = async (
+    workspaceSlug: string,
+    presetId: string,
+    data: Partial<TDashboardPreset>
+  ): Promise<TDashboardPreset> => {
+    const originalPresets = { ...this.dashboardPresets };
+    try {
+      const response = await this.dashboardService.updateDashboardPreset(workspaceSlug, presetId, data);
+      runInAction(() => {
+        const index = this.dashboardPresets[workspaceSlug]?.findIndex((p) => p.id === presetId);
+        if (index !== undefined && index !== -1) {
+          this.dashboardPresets[workspaceSlug][index] = response;
+        }
+      });
+      return response;
+    } catch (error) {
+      runInAction(() => {
+        this.dashboardPresets = originalPresets;
+      });
+      console.error("Failed to update dashboard preset", error);
+      throw error;
+    }
+  };
+
+  deleteDashboardPreset = async (workspaceSlug: string, presetId: string): Promise<void> => {
+    const originalPresets = [...(this.dashboardPresets[workspaceSlug] || [])];
+    try {
+      await this.dashboardService.deleteDashboardPreset(workspaceSlug, presetId);
+      runInAction(() => {
+        this.dashboardPresets[workspaceSlug] = this.dashboardPresets[workspaceSlug]?.filter((p) => p.id !== presetId);
+        if (this.activeDashboardPresetId === presetId) {
+          this.activeDashboardPresetId = null;
+        }
+      });
+    } catch (error) {
+      runInAction(() => {
+        this.dashboardPresets[workspaceSlug] = originalPresets;
+      });
+      console.error("Failed to delete dashboard preset", error);
+      throw error;
+    }
+  };
+
+  setActiveDashboardPreset = (presetId: string | null) => {
+    this.activeDashboardPresetId = presetId;
+  };
+
+  applyDashboardPreset = async (workspaceSlug: string, preset: TDashboardPreset): Promise<void> => {
+    const dashboardId = this.homeDashboardId;
+    if (!dashboardId) throw new Error("Dashboard not found");
+
+    runInAction(() => {
+      this.activeDashboardPresetId = preset.id;
+    });
+
+    const currentWidgets = this.widgetDetails[workspaceSlug]?.[dashboardId];
+    if (!currentWidgets) return;
+
+    const updatedWidgets = currentWidgets.map((widget) => {
+      const presetWidget = preset.widgets.find((w) => w.widget_key === widget.key);
+      if (presetWidget) {
+        return {
+          ...widget,
+          is_visible: presetWidget.is_visible,
+          filters: presetWidget.filters,
+        };
+      }
+      return widget;
+    });
+
+    runInAction(() => {
+      set(this.widgetDetails, [workspaceSlug, dashboardId], updatedWidgets);
+    });
   };
 }

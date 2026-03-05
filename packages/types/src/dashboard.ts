@@ -185,3 +185,62 @@ export type THomeDashboardResponse = {
   dashboard: TDeprecatedDashboard;
   widgets: TWidget[];
 };
+
+// filter presets
+export type TFilterPresetFilters = {
+  project?: string[];
+  state_group?: string[];
+  priority?: string[];
+  assignees?: string[];
+  created_by?: string[];
+  target_date?: string[];
+};
+
+export type TFilterPreset = {
+  id: string;
+  name: string;
+  description?: string;
+  workspace: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  filters: TFilterPresetFilters;
+  is_global: boolean;
+};
+
+// dashboard presets
+export type TDashboardPresetWidgets = {
+  widget_id: string;
+  widget_key: TWidgetKeys;
+  is_visible: boolean;
+  sort_order: number;
+  filters: TWidgetFiltersFormData["filters"];
+};
+
+export type TDashboardPreset = {
+  id: string;
+  name: string;
+  description?: string;
+  workspace: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  is_global: boolean;
+  widgets: TDashboardPresetWidgets[];
+  active_widget_filter_presets?: string[];
+};
+
+// API response types
+export type TFilterPresetsResponse = {
+  results: TFilterPreset[];
+  count: number;
+  next: string | null;
+  previous: string | null;
+};
+
+export type TDashboardPresetsResponse = {
+  results: TDashboardPreset[];
+  count: number;
+  next: string | null;
+  previous: string | null;
+};
