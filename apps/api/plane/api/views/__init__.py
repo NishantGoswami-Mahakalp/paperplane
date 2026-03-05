@@ -63,6 +63,7 @@ from .member import ProjectMemberListCreateAPIEndpoint, ProjectMemberDetailAPIEn
 from .intake import (
     IntakeIssueListCreateAPIEndpoint,
     IntakeIssueDetailAPIEndpoint,
+    IntakeIssueBulkActionAPIEndpoint,
     EmailIngestionAPIEndpoint,
 )
 
