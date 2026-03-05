@@ -13,6 +13,8 @@ export enum EDurationFilters {
   THIS_WEEK = "this_week",
   THIS_MONTH = "this_month",
   THIS_YEAR = "this_year",
+  LAST_7_DAYS = "last_7_days",
+  LAST_30_DAYS = "last_30_days",
   CUSTOM = "custom",
 }
 
@@ -40,6 +42,14 @@ export const DURATION_FILTER_OPTIONS: {
   {
     key: EDurationFilters.THIS_YEAR,
     label: "Due this year",
+  },
+  {
+    key: EDurationFilters.LAST_7_DAYS,
+    label: "Last 7 days",
+  },
+  {
+    key: EDurationFilters.LAST_30_DAYS,
+    label: "Last 30 days",
   },
   {
     key: EDurationFilters.CUSTOM,

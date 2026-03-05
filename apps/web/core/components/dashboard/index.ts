@@ -4,5 +4,6 @@
  * See the LICENSE file for details.
  */
 
-export * from "./dashboard.service";
-export * from "./dashboard-query-builder";
+export * from "./widgets";
+export * from "./loaders";
+export * from "./widget-filter-dropdown";
