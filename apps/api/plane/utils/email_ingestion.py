@@ -15,21 +15,6 @@ from django.db import transaction
 # Third party imports
 from rest_framework import status
 
-# Module imports
-from plane.db.models import (
-    Intake,
-    IntakeIssue,
-    IntakeIssueStatus,
-    Issue,
-    Project,
-    ProjectEmailAlias,
-    ReceivedEmail,
-    State,
-    StateGroup,
-    Workspace,
-)
-from plane.utils.email_parser import EmailParser, ParsedEmail
-
 logger = logging.getLogger("plane.api")
 
 DEDUP_WINDOW_HOURS = 24
@@ -51,7 +36,32 @@ class EmailIngestionService:
     """
 
     def __init__(self):
+        from plane.db.models import (  # noqa: E402
+            Intake,
+            IntakeIssue,
+            IntakeIssueStatus,
+            Issue,
+            Project,
+            ProjectEmailAlias,
+            ReceivedEmail,
+            State,
+            StateGroup,
+            Workspace,
+        )
+        from plane.utils.email_parser import EmailParser, ParsedEmail  # noqa: E402
+
         self.parser = EmailParser()
+        self.ParsedEmail = ParsedEmail
+        self.Intake = Intake
+        self.IntakeIssue = IntakeIssue
+        self.IntakeIssueStatus = IntakeIssueStatus
+        self.Issue = Issue
+        self.Project = Project
+        self.ProjectEmailAlias = ProjectEmailAlias
+        self.ReceivedEmail = ReceivedEmail
+        self.State = State
+        self.StateGroup = StateGroup
+        self.Workspace = Workspace
 
     def ingest(
         self,
@@ -97,9 +107,9 @@ class EmailIngestionService:
 
         actor = workspace.owner
 
-        intake = Intake.objects.filter(project=project, is_active=True).first()
+        intake = self.Intake.objects.filter(project=project, is_active=True).first()
         if not intake:
-            intake = Intake.objects.create(
+            intake = self.Intake.objects.create(
                 name="Default Intake",
                 project=project,
                 workspace=workspace,
@@ -107,14 +117,14 @@ class EmailIngestionService:
                 updated_by=actor,
             )
 
-        triage_state = State.triage_objects.filter(
+        triage_state = self.State.triage_objects.filter(
             project=project,
         ).first()
 
         if not triage_state:
-            triage_state = State.objects.create(
+            triage_state = self.State.objects.create(
                 name="Triage",
-                group=StateGroup.TRIAGE.value,
+                group=self.StateGroup.TRIAGE.value,
                 project=project,
                 workspace=workspace,
                 color="#4E5355",
@@ -126,7 +136,7 @@ class EmailIngestionService:
         body_html = self._get_description_html(parsed)
 
         with transaction.atomic():
-            issue = Issue.objects.create(
+            issue = self.Issue.objects.create(
                 name=subject[:255],
                 description_html=body_html,
                 description_html_hash=None,
@@ -139,17 +149,17 @@ class EmailIngestionService:
 
             attachments = self._create_attachments(issue, parsed, project, workspace, actor)
 
-            intake_issue = IntakeIssue.objects.create(
+            intake_issue = self.IntakeIssue.objects.create(
                 intake=intake,
                 issue=issue,
                 source="EMAIL",
                 source_email=parsed.from_email,
-                status=IntakeIssueStatus.PENDING,
+                status=self.IntakeIssueStatus.PENDING,
                 created_by=actor,
                 updated_by=actor,
             )
 
-            ReceivedEmail.objects.create(
+            self.ReceivedEmail.objects.create(
                 message_id=message_id or f"unknown-{timezone.now().timestamp()}",
                 subject_hash=self._hash_subject(parsed.subject),
                 sender_email=parsed.from_email,
@@ -167,13 +177,13 @@ class EmailIngestionService:
             status_code=status.HTTP_201_CREATED,
         )
 
-    def _find_alias(self, to_email: str) -> Optional[ProjectEmailAlias]:
+    def _find_alias(self, to_email: str) -> Optional["ProjectEmailAlias"]:
         if "@" not in to_email:
             return None
 
         alias_part, domain = to_email.rsplit("@", 1)
         return (
-            ProjectEmailAlias.objects.filter(
+            self.ProjectEmailAlias.objects.filter(
                 alias__iexact=alias_part,
                 domain__iexact=domain,
                 is_active=True,
@@ -189,7 +199,7 @@ class EmailIngestionService:
         message_id: Optional[str] = None,
     ) -> Optional[ReceivedEmail]:
         if message_id:
-            existing = ReceivedEmail.objects.filter(
+            existing = self.ReceivedEmail.objects.filter(
                 message_id=message_id,
                 project=project,
             ).first()
@@ -199,7 +209,7 @@ class EmailIngestionService:
         subject_hash = self._hash_subject(parsed.subject)
         cutoff_time = timezone.now() - timezone.timedelta(hours=DEDUP_WINDOW_HOURS)
 
-        return ReceivedEmail.objects.filter(
+        return self.ReceivedEmail.objects.filter(
             subject_hash=subject_hash,
             sender_email__iexact=parsed.from_email,
             project=project,
