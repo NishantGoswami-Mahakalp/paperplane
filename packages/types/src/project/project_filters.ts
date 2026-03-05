@@ -11,15 +11,21 @@ export type TProjectOrderByOptions =
   | "created_at"
   | "-created_at"
   | "members_length"
-  | "-members_length";
+  | "-members_length"
+  | "updated_at"
+  | "-updated_at";
+
+export type TProjectViewType = "grid" | "table";
 
 export type TProjectDisplayFilters = {
   my_projects?: boolean;
+  favorites?: boolean;
   archived_projects?: boolean;
   order_by?: TProjectOrderByOptions;
+  view_type?: TProjectViewType;
 };
 
-export type TProjectAppliedDisplayFilterKeys = "my_projects" | "archived_projects";
+export type TProjectAppliedDisplayFilterKeys = "my_projects" | "favorites" | "archived_projects";
 
 export type TProjectFilters = {
   access?: string[] | null;

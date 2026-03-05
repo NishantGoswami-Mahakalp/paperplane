@@ -20,6 +20,8 @@ import { useWorkspace } from "@/hooks/store/use-workspace";
 // local imports
 import { ProjectAppliedFiltersList } from "./applied-filters";
 import { ProjectCardList } from "./card-list";
+import { ProjectListSidebar } from "./project-list-sidebar";
+import { ProjectTableList } from "./project-table-list";
 
 export const ProjectRoot = observer(function ProjectRoot() {
   const { currentWorkspace } = useWorkspace();
@@ -31,6 +33,7 @@ export const ProjectRoot = observer(function ProjectRoot() {
   const {
     currentWorkspaceFilters,
     currentWorkspaceAppliedDisplayFilters,
+    currentWorkspaceDisplayFilters,
     clearAllFilters,
     clearAllAppliedDisplayFilters,
     updateFilters,
@@ -72,29 +75,35 @@ export const ProjectRoot = observer(function ProjectRoot() {
     clearAllFilters(workspaceSlug.toString());
     clearAllAppliedDisplayFilters(workspaceSlug.toString());
     if (isArchived) updateDisplayFilters(workspaceSlug.toString(), { archived_projects: true });
-  }, [clearAllFilters, clearAllAppliedDisplayFilters, workspaceSlug]);
+  }, [clearAllFilters, clearAllAppliedDisplayFilters, workspaceSlug, isArchived, updateDisplayFilters]);
 
   useEffect(() => {
+    if (!workspaceSlug) return;
     updateDisplayFilters(workspaceSlug.toString(), { archived_projects: isArchived });
-  }, [pathname]);
+  }, [pathname, workspaceSlug, isArchived, updateDisplayFilters]);
+
+  const viewType = currentWorkspaceDisplayFilters?.view_type ?? "grid";
 
   return (
     <>
       <PageHead title={pageTitle} />
-      <div className="flex h-full w-full flex-col">
-        {(calculateTotalFilters(currentWorkspaceFilters ?? {}) !== 0 || allowedDisplayFilters.length > 0) && (
-          <ProjectAppliedFiltersList
-            appliedFilters={currentWorkspaceFilters ?? {}}
-            appliedDisplayFilters={allowedDisplayFilters}
-            handleClearAllFilters={handleClearAllFilters}
-            handleRemoveFilter={handleRemoveFilter}
-            handleRemoveDisplayFilter={handleRemoveDisplayFilter}
-            filteredProjects={filteredProjectIds?.length ?? 0}
-            totalProjects={totalProjectIds?.length ?? 0}
-            alwaysAllowEditing
-          />
-        )}
-        <ProjectCardList />
+      <div className="flex h-full w-full">
+        <ProjectListSidebar />
+        <div className="flex h-full w-full flex-col">
+          {(calculateTotalFilters(currentWorkspaceFilters ?? {}) !== 0 || allowedDisplayFilters.length > 0) && (
+            <ProjectAppliedFiltersList
+              appliedFilters={currentWorkspaceFilters ?? {}}
+              appliedDisplayFilters={allowedDisplayFilters}
+              handleClearAllFilters={handleClearAllFilters}
+              handleRemoveFilter={handleRemoveFilter}
+              handleRemoveDisplayFilter={handleRemoveDisplayFilter}
+              filteredProjects={filteredProjectIds?.length ?? 0}
+              totalProjects={totalProjectIds?.length ?? 0}
+              alwaysAllowEditing
+            />
+          )}
+          {viewType === "grid" ? <ProjectCardList /> : <ProjectTableList projectIds={filteredProjectIds ?? []} />}
+        </div>
       </div>
     </>
   );

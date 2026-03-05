@@ -82,6 +82,7 @@ export const shouldFilterProject = (
     }
   });
   if (displayFilters.my_projects && !project.member_role) fallsInFilters = false;
+  if (displayFilters.favorites && !project.is_favorite) fallsInFilters = false;
   if (displayFilters.archived_projects && !project.archived_at) fallsInFilters = false;
   if (project.archived_at) fallsInFilters = displayFilters.archived_projects ? fallsInFilters : false;
 
@@ -103,6 +104,8 @@ export const orderProjects = (projects: TProject[], orderByKey: TProjectOrderByO
   if (orderByKey === "-name") orderedProjects = sortBy(projects, [(p) => p.name.toLowerCase()]).toReversed();
   if (orderByKey === "created_at") orderedProjects = sortBy(projects, [(p) => p.created_at]);
   if (orderByKey === "-created_at") orderedProjects = sortBy(projects, [(p) => !p.created_at]);
+  if (orderByKey === "updated_at") orderedProjects = sortBy(projects, [(p) => p.updated_at]);
+  if (orderByKey === "-updated_at") orderedProjects = sortBy(projects, [(p) => p.updated_at]).toReversed();
   if (orderByKey === "members_length") orderedProjects = sortBy(projects, [(p) => p.members?.length]);
   if (orderByKey === "-members_length") orderedProjects = sortBy(projects, [(p) => p.members?.length]).toReversed();
 

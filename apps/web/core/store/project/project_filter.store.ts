@@ -90,7 +90,8 @@ export class ProjectFilterStore implements IProjectFilterStore {
     const displayFilters = this.displayFilters[workspaceSlug];
     return Object.keys(displayFilters).filter(
       (key): key is TProjectAppliedDisplayFilterKeys =>
-        ["my_projects", "archived_projects"].includes(key) && !!displayFilters[key as keyof TProjectDisplayFilters]
+        ["my_projects", "favorites", "archived_projects"].includes(key) &&
+        !!displayFilters[key as keyof TProjectDisplayFilters]
     );
   }
 
@@ -124,6 +125,7 @@ export class ProjectFilterStore implements IProjectFilterStore {
     runInAction(() => {
       this.displayFilters[workspaceSlug] = {
         order_by: displayFilters?.order_by || "created_at",
+        view_type: displayFilters?.view_type || "grid",
       };
       this.filters[workspaceSlug] = this.filters[workspaceSlug] ?? {};
     });

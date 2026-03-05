@@ -97,6 +97,10 @@ export const PROJECT_DISPLAY_FILTER_OPTIONS: {
     i18n_label: "workspace_projects.scope.my_projects",
   },
   {
+    key: "favorites",
+    i18n_label: "workspace_projects.scope.favorites",
+  },
+  {
     key: "archived_projects",
     i18n_label: "workspace_projects.scope.archived_projects",
   },
