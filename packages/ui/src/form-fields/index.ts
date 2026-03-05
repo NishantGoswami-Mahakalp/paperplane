@@ -16,3 +16,4 @@ export * from "./date-field";
 export * from "./date-time-field";
 export * from "./select-field";
 export * from "./multi-select-field";
+export * from "./dynamic-form-field";

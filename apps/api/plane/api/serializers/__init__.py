@@ -75,3 +75,14 @@ from .asset import (
 from .invite import WorkspaceInviteSerializer
 from .member import ProjectMemberSerializer
 from .sticky import StickySerializer
+from .work_item_type import (
+    WorkItemTypeSerializer,
+    WorkItemTypeLiteSerializer,
+    WorkItemTypeCreateSerializer,
+    ProjectWorkItemTypeSerializer,
+    ProjectWorkItemTypeCreateSerializer,
+    FieldDefinitionSerializer,
+    FieldDefinitionLiteSerializer,
+    WorkItemTypeFieldSerializer,
+    WorkItemTypeFieldCreateSerializer,
+)

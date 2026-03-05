@@ -89,7 +89,15 @@ from .worklog import WorkLog
 from .timer_session import TimerSession
 from .favorite import UserFavorite
 
-from .issue_type import IssueType
+from .issue_type import (
+    IssueType,
+    ProjectIssueType,
+    WorkItemType,
+    ProjectWorkItemType,
+    FieldDefinition,
+    WorkItemTypeField,
+    get_default_work_item_fields,
+)
 
 from .recent_visit import UserRecentVisit
 

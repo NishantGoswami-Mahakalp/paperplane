@@ -5,3 +5,4 @@
  */
 
 export * from "./field-type-registry";
+export * from "./work-item-type-schema";

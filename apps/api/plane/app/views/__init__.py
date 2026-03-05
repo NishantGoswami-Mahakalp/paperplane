@@ -268,3 +268,10 @@ from .issue.worklog import (
     WorklogTimeReportsEndpoint,
     WorklogExportEndpoint,
 )
+
+from .work_item_type import (
+    WorkItemTypeViewSet,
+    FieldDefinitionViewSet,
+    ProjectWorkItemTypeViewSet,
+    WorkItemTypeFieldViewSet,
+)
