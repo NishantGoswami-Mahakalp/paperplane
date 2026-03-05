@@ -11,6 +11,7 @@ from plane.space.views import (
     IssueReactionPublicViewSet,
     CommentReactionPublicViewSet,
     IssueVotePublicViewSet,
+    IssueActivityPublicEndpoint,
 )
 
 urlpatterns = [
@@ -53,5 +54,10 @@ urlpatterns = [
         "anchor/<str:anchor>/issues/<uuid:issue_id>/votes/",
         IssueVotePublicViewSet.as_view({"get": "list", "post": "create", "delete": "destroy"}),
         name="issue-vote-project-board",
+    ),
+    path(
+        "anchor/<str:anchor>/issues/<uuid:issue_id>/activities/",
+        IssueActivityPublicEndpoint.as_view(),
+        name="issue-activity-project-board",
     ),
 ]

@@ -52,6 +52,7 @@ from plane.app.serializers import (
     IssueCommentSerializer,
     IssueReactionSerializer,
     IssueVoteSerializer,
+    IssueActivitySerializer,
 )
 from plane.db.models import (
     Issue,
@@ -65,6 +66,7 @@ from plane.db.models import (
     ProjectPublicMember,
     FileAsset,
     CycleIssue,
+    IssueActivity,
 )
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.utils.issue_filters import issue_filters
@@ -771,3 +773,339 @@ class IssueRetrievePublicEndpoint(BaseAPIView):
         ).first()
 
         return Response(issue_queryset, status=status.HTTP_200_OK)
+
+
+class ProjectItemDetailPublicEndpoint(BaseAPIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, project_id, item_id):
+        try:
+            deploy_board = DeployBoard.objects.get(entity_identifier=project_id, entity_name="project")
+        except DeployBoard.DoesNotExist:
+            return Response({"error": "Project is not published"}, status=status.HTTP_404_NOT_FOUND)
+
+        issue_queryset = (
+            Issue.issue_objects.filter(
+                pk=item_id,
+                workspace__slug=deploy_board.workspace.slug,
+                project_id=project_id,
+            )
+            .select_related("workspace", "project", "state", "parent")
+            .prefetch_related("assignees", "labels", "issue_module__module")
+            .annotate(
+                cycle_id=Subquery(
+                    CycleIssue.objects.filter(issue=OuterRef("id"), deleted_at__isnull=True).values("cycle_id")[:1]
+                )
+            )
+            .annotate(
+                state_group=F("state__group"),
+            )
+            .annotate(
+                label_ids=Coalesce(
+                    ArrayAgg(
+                        "labels__id",
+                        distinct=True,
+                        filter=Q(~Q(labels__id__isnull=True) & Q(label_issue__deleted_at__isnull=True)),
+                    ),
+                    Value([], output_field=ArrayField(UUIDField())),
+                ),
+                assignee_ids=Coalesce(
+                    ArrayAgg(
+                        "assignees__id",
+                        distinct=True,
+                        filter=Q(
+                            ~Q(assignees__id__isnull=True)
+                            & Q(assignees__member_project__is_active=True)
+                            & Q(issue_assignee__deleted_at__isnull=True)
+                        ),
+                    ),
+                    Value([], output_field=ArrayField(UUIDField())),
+                ),
+                module_ids=Coalesce(
+                    ArrayAgg(
+                        "issue_module__module_id",
+                        distinct=True,
+                        filter=~Q(issue_module__module_id__isnull=True)
+                        & Q(issue_module__module__archived_at__isnull=True)
+                        & Q(issue_module__deleted_at__isnull=True),
+                    ),
+                    Value([], output_field=ArrayField(UUIDField())),
+                ),
+            )
+            .prefetch_related(
+                Prefetch(
+                    "issue_reactions",
+                    queryset=IssueReaction.objects.select_related("issue", "actor"),
+                )
+            )
+            .prefetch_related(Prefetch("votes", queryset=IssueVote.objects.select_related("actor")))
+            .annotate(
+                vote_items=ArrayAgg(
+                    Case(
+                        When(
+                            votes__isnull=False,
+                            votes__deleted_at__isnull=True,
+                            then=JSONObject(
+                                vote=F("votes__vote"),
+                                actor_details=JSONObject(
+                                    id=F("votes__actor__id"),
+                                    first_name=F("votes__actor__first_name"),
+                                    last_name=F("votes__actor__last_name"),
+                                    avatar=F("votes__actor__avatar"),
+                                    avatar_url=Case(
+                                        When(
+                                            votes__actor__avatar_asset__isnull=False,
+                                            then=Concat(
+                                                Value("/api/assets/v2/static/"),
+                                                F("votes__actor__avatar_asset"),
+                                                Value("/"),
+                                            ),
+                                        ),
+                                        When(
+                                            votes__actor__avatar_asset__isnull=True,
+                                            then=F("votes__actor__avatar"),
+                                        ),
+                                        default=Value(None),
+                                        output_field=CharField(),
+                                    ),
+                                    display_name=F("votes__actor__display_name"),
+                                ),
+                            ),
+                        ),
+                        default=None,
+                        output_field=JSONField(),
+                    ),
+                    filter=Case(
+                        When(
+                            votes__isnull=False,
+                            votes__deleted_at__isnull=True,
+                            then=True,
+                        ),
+                        default=False,
+                        output_field=JSONField(),
+                    ),
+                    distinct=True,
+                ),
+                reaction_items=ArrayAgg(
+                    Case(
+                        When(
+                            issue_reactions__isnull=False,
+                            issue_reactions__deleted_at__isnull=True,
+                            then=JSONObject(
+                                reaction=F("issue_reactions__reaction"),
+                                actor_details=JSONObject(
+                                    id=F("issue_reactions__actor__id"),
+                                    first_name=F("issue_reactions__actor__first_name"),
+                                    last_name=F("issue_reactions__actor__last_name"),
+                                    avatar=F("issue_reactions__actor__avatar"),
+                                    avatar_url=Case(
+                                        When(
+                                            votes__actor__avatar_asset__isnull=False,
+                                            then=Concat(
+                                                Value("/api/assets/v2/static/"),
+                                                F("votes__actor__avatar_asset"),
+                                                Value("/"),
+                                            ),
+                                        ),
+                                        When(
+                                            votes__actor__avatar_asset__isnull=True,
+                                            then=F("votes__actor__avatar"),
+                                        ),
+                                        default=Value(None),
+                                        output_field=CharField(),
+                                    ),
+                                    display_name=F("issue_reactions__actor__display_name"),
+                                ),
+                            ),
+                        ),
+                        default=None,
+                        output_field=JSONField(),
+                    ),
+                    filter=Case(
+                        When(
+                            issue_reactions__isnull=False,
+                            issue_reactions__deleted_at__isnull=True,
+                            then=True,
+                        ),
+                        default=False,
+                        output_field=JSONField(),
+                    ),
+                    distinct=True,
+                ),
+            )
+        ).first()
+
+        if not issue_queryset:
+            return Response({"error": "Item not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        issue_data = {
+            "id": issue_queryset.id,
+            "name": issue_queryset.name,
+            "state_id": issue_queryset.state_id,
+            "state_group": issue_queryset.state_group,
+            "sort_order": issue_queryset.sort_order,
+            "description_json": issue_queryset.description_json,
+            "description_html": issue_queryset.description_html,
+            "description_stripped": issue_queryset.description_stripped,
+            "description_binary": issue_queryset.description_binary,
+            "module_ids": issue_queryset.module_ids,
+            "label_ids": issue_queryset.label_ids,
+            "assignee_ids": issue_queryset.assignee_ids,
+            "estimate_point": issue_queryset.estimate_point,
+            "priority": issue_queryset.priority,
+            "start_date": issue_queryset.start_date,
+            "target_date": issue_queryset.target_date,
+            "sequence_id": issue_queryset.sequence_id,
+            "project_id": issue_queryset.project_id,
+            "parent_id": issue_queryset.parent_id,
+            "cycle_id": issue_queryset.cycle_id,
+            "created_by": issue_queryset.created_by,
+            "vote_items": issue_queryset.vote_items,
+            "reaction_items": issue_queryset.reaction_items,
+            "created_at": issue_queryset.created_at,
+            "updated_at": issue_queryset.updated_at,
+        }
+
+        response_data = {"item": issue_data}
+
+        if deploy_board.is_comments_enabled:
+            comments = (
+                IssueComment.objects.filter(
+                    issue_id=item_id,
+                    workspace_id=deploy_board.workspace_id,
+                    project_id=project_id,
+                    access="EXTERNAL",
+                )
+                .select_related("actor", "issue", "project", "workspace")
+                .order_by("created_at")
+            )
+            comment_serializer = IssueCommentSerializer(comments, many=True)
+            response_data["comments"] = comment_serializer.data
+        else:
+            response_data["comments"] = []
+
+        if deploy_board.is_activity_enabled:
+            issue_activities = (
+                IssueActivity.objects.filter(
+                    issue_id=item_id,
+                    project_id=project_id,
+                    workspace_id=deploy_board.workspace_id,
+                )
+                .select_related("actor", "workspace", "issue", "project")
+                .order_by("created_at")
+            )
+            activity_serializer = IssueActivitySerializer(issue_activities, many=True)
+            response_data["activity_history"] = activity_serializer.data
+        else:
+            response_data["activity_history"] = []
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+class IssueActivityPublicEndpoint(BaseAPIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, anchor, issue_id):
+        try:
+            deploy_board = DeployBoard.objects.get(anchor=anchor, entity_name="project")
+        except DeployBoard.DoesNotExist:
+            return Response({"error": "Project is not published"}, status=status.HTTP_404_NOT_FOUND)
+
+        if not deploy_board.is_activity_enabled:
+            return Response({"error": "Activity is not enabled for this project"}, status=status.HTTP_400_BAD_REQUEST)
+
+        activity_type = request.GET.get("activity_type", None)
+
+        if activity_type == "issue-comment":
+            issue_comments = (
+                IssueComment.objects.filter(
+                    issue_id=issue_id,
+                    project_id=deploy_board.project_id,
+                    workspace_id=deploy_board.workspace_id,
+                    access="EXTERNAL",
+                )
+                .select_related("actor", "workspace", "issue", "project")
+                .prefetch_related(
+                    Prefetch(
+                        "comment_reactions",
+                        queryset=CommentReaction.objects.select_related("actor"),
+                    )
+                )
+                .order_by("created_at")
+            )
+            serializer = IssueCommentSerializer(issue_comments, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        issue_activities = (
+            IssueActivity.objects.filter(
+                issue_id=issue_id,
+                project_id=deploy_board.project_id,
+                workspace_id=deploy_board.workspace_id,
+            )
+            .filter(~Q(field__in=["comment", "vote", "reaction", "draft"]))
+            .select_related("actor", "workspace", "issue", "project")
+            .order_by("created_at")
+        )
+
+        serializer = IssueActivitySerializer(issue_activities, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ProjectItemCommentsPublicEndpoint(BaseAPIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, project_id, item_id):
+        try:
+            deploy_board = DeployBoard.objects.get(entity_identifier=project_id, entity_name="project")
+        except DeployBoard.DoesNotExist:
+            return Response({"error": "Project is not published"}, status=status.HTTP_404_NOT_FOUND)
+
+        if not deploy_board.is_comments_enabled:
+            return Response({"error": "Comments are not enabled for this project"}, status=status.HTTP_400_BAD_REQUEST)
+
+        comments = (
+            IssueComment.objects.filter(
+                issue_id=item_id,
+                workspace_id=deploy_board.workspace_id,
+                project_id=project_id,
+                access="EXTERNAL",
+            )
+            .select_related("actor", "issue", "project", "workspace")
+            .prefetch_related(
+                Prefetch(
+                    "comment_reactions",
+                    queryset=CommentReaction.objects.select_related("actor"),
+                )
+            )
+            .order_by("created_at")
+        )
+
+        serializer = IssueCommentSerializer(comments, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ProjectItemActivitiesPublicEndpoint(BaseAPIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, project_id, item_id):
+        try:
+            deploy_board = DeployBoard.objects.get(entity_identifier=project_id, entity_name="project")
+        except DeployBoard.DoesNotExist:
+            return Response({"error": "Project is not published"}, status=status.HTTP_404_NOT_FOUND)
+
+        if not deploy_board.is_activity_enabled:
+            return Response({"error": "Activity is not enabled for this project"}, status=status.HTTP_400_BAD_REQUEST)
+
+        issue_activities = (
+            IssueActivity.objects.filter(
+                issue_id=item_id,
+                project_id=project_id,
+                workspace_id=deploy_board.workspace_id,
+            )
+            .filter(~Q(field__in=["comment", "vote", "reaction", "draft"]))
+            .select_related("actor", "workspace", "issue", "project")
+            .order_by("created_at")
+        )
+
+        serializer = IssueActivitySerializer(issue_activities, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

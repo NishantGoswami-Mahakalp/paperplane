@@ -7,6 +7,7 @@ from .project import (
     WorkspaceProjectDeployBoardEndpoint,
     WorkspaceProjectAnchorEndpoint,
     ProjectMembersEndpoint,
+    ProjectBoardPublicEndpoint,
 )
 
 from .issue import (
@@ -16,6 +17,10 @@ from .issue import (
     IssueVotePublicViewSet,
     IssueRetrievePublicEndpoint,
     ProjectIssuesPublicEndpoint,
+    ProjectItemDetailPublicEndpoint,
+    ProjectItemCommentsPublicEndpoint,
+    ProjectItemActivitiesPublicEndpoint,
+    IssueActivityPublicEndpoint,
 )
 
 from .intake import (

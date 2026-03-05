@@ -15,6 +15,10 @@ from plane.space.views import (
     ProjectLabelsEndpoint,
     ProjectMembersEndpoint,
     ProjectMetaDataEndpoint,
+    ProjectItemDetailPublicEndpoint,
+    ProjectItemCommentsPublicEndpoint,
+    ProjectItemActivitiesPublicEndpoint,
+    ProjectBoardPublicEndpoint,
 )
 
 urlpatterns = [
@@ -29,6 +33,11 @@ urlpatterns = [
         name="project-deploy-board-settings",
     ),
     path(
+        "anchor/<str:anchor>/board/",
+        ProjectBoardPublicEndpoint.as_view(),
+        name="project-public-board",
+    ),
+    path(
         "anchor/<str:anchor>/issues/",
         ProjectIssuesPublicEndpoint.as_view(),
         name="project-deploy-board",
@@ -37,6 +46,21 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/anchor/",
         WorkspaceProjectAnchorEndpoint.as_view(),
         name="project-deploy-board",
+    ),
+    path(
+        "public/projects/<uuid:project_id>/items/<uuid:item_id>/",
+        ProjectItemDetailPublicEndpoint.as_view(),
+        name="project-item-detail-public",
+    ),
+    path(
+        "public/projects/<uuid:project_id>/items/<uuid:item_id>/comments/",
+        ProjectItemCommentsPublicEndpoint.as_view(),
+        name="project-item-comments-public",
+    ),
+    path(
+        "public/projects/<uuid:project_id>/items/<uuid:item_id>/activities/",
+        ProjectItemActivitiesPublicEndpoint.as_view(),
+        name="project-item-activities-public",
     ),
     path(
         "anchor/<str:anchor>/cycles/",

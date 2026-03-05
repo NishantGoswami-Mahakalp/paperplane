@@ -6,7 +6,7 @@
 
 // plane imports
 import { API_BASE_URL } from "@plane/constants";
-import type { IPublicIssue, TIssuePublicComment, TPublicIssuesResponse } from "@plane/types";
+import type { IPublicIssue, TIssuePublicComment, TProjectPublishSettings, TPublicIssuesResponse } from "@plane/types";
 // api service
 import { APIService } from "../api.service";
 
@@ -30,6 +30,26 @@ export class SitesIssueService extends APIService {
    */
   async list(anchor: string, params: any): Promise<TPublicIssuesResponse> {
     return this.get(`/api/public/anchor/${anchor}/issues/`, {
+      params,
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response;
+      });
+  }
+
+  /**
+   * Retrieves the public board view with settings and issues for a specific anchor
+   * @param {string} anchor - The anchor identifier
+   * @param {any} params - Optional query parameters for filtering/sorting issues
+   * @returns {Promise<{settings: TProjectPublishSettings; issues: TPublicIssuesResponse}>} Promise resolving to board settings and issues
+   * @throws {Error} If the API request fails
+   */
+  async getBoard(
+    anchor: string,
+    params: any
+  ): Promise<{ settings: TProjectPublishSettings; issues: TPublicIssuesResponse }> {
+    return this.get(`/api/public/anchor/${anchor}/board/`, {
       params,
     })
       .then((response) => response?.data)
