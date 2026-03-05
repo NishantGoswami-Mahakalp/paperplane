@@ -17,6 +17,9 @@ import type {
   TWidgetStatsRequestParams,
   TFilterPreset,
   TDashboardPreset,
+  TDashboardAccess,
+  TDashboardSharee,
+  TDashboardPermission,
 } from "@plane/types";
 // services
 import { DashboardService } from "@/services/dashboard.service";
@@ -87,6 +90,11 @@ export interface IDashboardStore {
   deleteDashboardPreset: (workspaceSlug: string, presetId: string) => Promise<void>;
   setActiveDashboardPreset: (presetId: string | null) => void;
   applyDashboardPreset: (workspaceSlug: string, preset: TDashboardPreset) => Promise<void>;
+  updateDashboardAccess: (workspaceSlug: string, dashboardId: string, access: TDashboardAccess) => Promise<void>;
+  shareDashboard: (workspaceSlug: string, dashboardId: string, userIds: string[], permission: TDashboardPermission) => Promise<TDashboardSharee[]>;
+  removeShare: (workspaceSlug: string, dashboardId: string, shareeId: string) => Promise<void>;
+  generateEmbedCode: (workspaceSlug: string, dashboardId: string, allowEmbed: boolean) => Promise<string>;
+  getDashboardSharees: (workspaceSlug: string, dashboardId: string) => Promise<TDashboardSharee[]>;
 }
 
 export class DashboardStore implements IDashboardStore {
@@ -518,5 +526,63 @@ export class DashboardStore implements IDashboardStore {
     runInAction(() => {
       set(this.widgetDetails, [workspaceSlug, dashboardId], updatedWidgets);
     });
+  };
+
+  updateDashboardAccess = async (workspaceSlug: string, dashboardId: string, access: TDashboardAccess): Promise<void> => {
+    try {
+      await this.dashboardService.updateDashboardAccess(workspaceSlug, dashboardId, { access });
+    } catch (error) {
+      console.error("Failed to update dashboard access", error);
+      throw error;
+    }
+  };
+
+  shareDashboard = async (
+    workspaceSlug: string,
+    dashboardId: string,
+    userIds: string[],
+    permission: TDashboardPermission
+  ): Promise<TDashboardSharee[]> => {
+    try {
+      const response = await this.dashboardService.shareDashboard(workspaceSlug, dashboardId, {
+        user_ids: userIds,
+        permission,
+      });
+      return response;
+    } catch (error) {
+      console.error("Failed to share dashboard", error);
+      throw error;
+    }
+  };
+
+  removeShare = async (workspaceSlug: string, dashboardId: string, shareeId: string): Promise<void> => {
+    try {
+      await this.dashboardService.removeShare(workspaceSlug, dashboardId, shareeId);
+    } catch (error) {
+      console.error("Failed to remove share", error);
+      throw error;
+    }
+  };
+
+  generateEmbedCode = async (workspaceSlug: string, dashboardId: string, allowEmbed: boolean): Promise<string> => {
+    try {
+      const response = await this.dashboardService.generateEmbedCode(workspaceSlug, dashboardId, {
+        allow_embed: allowEmbed,
+      });
+      return response.embed_code;
+    } catch (error) {
+      console.error("Failed to generate embed code", error);
+      throw error;
+    }
+  };
+
+  getDashboardSharees = async (workspaceSlug: string, dashboardId: string): Promise<TDashboardSharee[]> => {
+    try {
+      const response = await this.dashboardService.getDashboardSharees(workspaceSlug, dashboardId);
+      return response;
+    } catch (error) {
+      console.error("Failed to get dashboard sharees", error);
+      throw error;
+    }
   };
 }

@@ -12,6 +12,10 @@ import type {
   TWidgetStatsRequestParams,
   TFilterPreset,
   TDashboardPreset,
+  TDashboard,
+  TDashboardAccess,
+  TDashboardSharee,
+  TDashboardPermission,
 } from "@plane/types";
 import { APIService } from "@/services/api.service";
 // helpers
@@ -138,6 +142,62 @@ export class DashboardService extends APIService {
 
   async deleteDashboardPreset(workspaceSlug: string, presetId: string): Promise<void> {
     return this.delete(`/api/workspaces/${workspaceSlug}/dashboard/presets/${presetId}/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async updateDashboardAccess(
+    workspaceSlug: string,
+    dashboardId: string,
+    data: { access: TDashboardAccess }
+  ): Promise<TDashboard> {
+    return this.patch(`/api/workspaces/${workspaceSlug}/dashboards/${dashboardId}/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async shareDashboard(
+    workspaceSlug: string,
+    dashboardId: string,
+    data: { user_ids: string[]; permission: TDashboardPermission }
+  ): Promise<TDashboardSharee[]> {
+    return this.post(`/api/workspaces/${workspaceSlug}/dashboards/${dashboardId}/share/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async removeShare(
+    workspaceSlug: string,
+    dashboardId: string,
+    shareeId: string
+  ): Promise<void> {
+    return this.delete(`/api/workspaces/${workspaceSlug}/dashboards/${dashboardId}/share/${shareeId}/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async generateEmbedCode(
+    workspaceSlug: string,
+    dashboardId: string,
+    data: { allow_embed: boolean }
+  ): Promise<{ embed_code: string }> {
+    return this.post(`/api/workspaces/${workspaceSlug}/dashboards/${dashboardId}/embed/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async getDashboardSharees(workspaceSlug: string, dashboardId: string): Promise<TDashboardSharee[]> {
+    return this.get(`/api/workspaces/${workspaceSlug}/dashboards/${dashboardId}/share/`)
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

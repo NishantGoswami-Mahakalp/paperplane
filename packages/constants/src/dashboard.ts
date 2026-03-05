@@ -106,3 +106,16 @@ export const UNFILTERED_ISSUES_TABS_LIST: {
 export type TLinkOptions = {
   userId: string | undefined;
 };
+
+export enum EDashboardAccess {
+  PRIVATE = 0,
+  TEAMSPACE = 1,
+  WORKSPACE = 2,
+  PUBLIC = 3,
+}
+
+export enum EDashboardPermission {
+  VIEW = "view",
+  EDIT = "edit",
+  ADMIN = "admin",
+}

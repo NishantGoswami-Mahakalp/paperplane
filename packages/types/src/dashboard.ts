@@ -462,3 +462,31 @@ export type TDashboardPresetsResponse = {
   next: string | null;
   previous: string | null;
 };
+
+export type TDashboardAccess = 0 | 1 | 2 | 3;
+
+export type TDashboardPermission = "view" | "edit" | "admin";
+
+export type TDashboardSharee = {
+  id: string;
+  user_id: string;
+  permission: TDashboardPermission;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TDashboard = {
+  id: string;
+  name: string;
+  description?: string;
+  access: TDashboardAccess;
+  owned_by: string;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  updated_by: string | null;
+  isarchived: boolean;
+  isdeleted: boolean;
+  sharees?: TDashboardSharee[];
+  embed_code?: string;
+};
