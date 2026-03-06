@@ -1,5 +1,9 @@
 name: Build and Deploy to VPS
 
+concurrency:
+  group: deploy-vps-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
@@ -19,6 +23,25 @@ jobs:
   build-and-push:
     if: ${{ github.event.inputs.skip_build != 'true' }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: api
+            context: ./apps/api
+            dockerfile: ./apps/api/Dockerfile.api
+          - image: web
+            context: .
+            dockerfile: ./apps/web/Dockerfile.web
+          - image: admin
+            context: .
+            dockerfile: ./apps/admin/Dockerfile.admin
+          - image: space
+            context: .
+            dockerfile: ./apps/space/Dockerfile.space
+          - image: live
+            context: .
+            dockerfile: ./apps/live/Dockerfile.live
 
     steps:
       - name: Checkout code
@@ -34,68 +57,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push API
+      - name: Build and push ${{ matrix.image }}
         uses: docker/build-push-action@v6
         with:
-          context: ./apps/api
-          file: ./apps/api/Dockerfile.api
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
           push: true
-          tags: ghcr.io/nishantgoswami-mahakalp/paperplane-api:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Web
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./apps/web/Dockerfile.web
-          push: true
-          tags: ghcr.io/nishantgoswami-mahakalp/paperplane-web:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Admin
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./apps/admin/Dockerfile.admin
-          push: true
-          tags: ghcr.io/nishantgoswami-mahakalp/paperplane-admin:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Space
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./apps/space/Dockerfile.space
-          push: true
-          tags: ghcr.io/nishantgoswami-mahakalp/paperplane-space:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Live
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./apps/live/Dockerfile.live
-          push: true
-          tags: ghcr.io/nishantgoswami-mahakalp/paperplane-live:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Proxy
-        uses: docker/build-push-action@v6
-        with:
-          context: ./apps/proxy
-          file: ./apps/proxy/Dockerfile.ce
-          push: true
-          tags: ghcr.io/nishantgoswami-mahakalp/paperplane-proxy:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ghcr.io/nishantgoswami-mahakalp/paperplane-${{ matrix.image }}:latest
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,scope=${{ matrix.image }},mode=max
 
   deploy:
     needs: build-and-push
+    if: ${{ always() && (needs.build-and-push.result == 'success' || needs.build-and-push.result == 'skipped') }}
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -133,20 +107,14 @@ jobs:
             
             # Clone the repo to get docker-compose.yml
             if [ -d .git ]; then
-              git pull
-            else
-              git clone https://github.com/NishantGoswami-Mahakalp/paperplane.git .
+              git fetch origin preview
               git checkout preview
+              git pull --ff-only origin preview
+            else
+              git clone --branch preview --single-branch https://github.com/NishantGoswami-Mahakalp/paperplane.git .
             fi
             
             cd deploy/vps
-            
-            # Stop and remove vps- prefixed containers (clean slate)
-            docker ps -q --filter "name=vps-" | xargs -r docker stop 2>/dev/null || true
-            docker ps -aq --filter "name=vps-" | xargs -r docker rm -f 2>/dev/null || true
-            
-            # Also clean up any orphaned containers from previous failed deploys
-            docker ps -aq --filter "name=plane-" | xargs -r docker rm -f 2>/dev/null || true
             
             # Create env files from templates (they're gitignored)
             if [ ! -f .env ]; then
@@ -162,6 +130,10 @@ jobs:
               echo "AWS_SECRET_ACCESS_KEY=secret-key" >> .env
               echo "USE_MINIO=1" >> .env
             fi
+
+            set -a
+            source .env
+            set +a
             
             mkdir -p apps/api
             if [ ! -f apps/api/.env ]; then
@@ -187,14 +159,14 @@ jobs:
             fi
             
             echo "Stopping existing containers..."
-            docker compose down --remove-orphans --volumes || true
-            
-            # Double check no vps containers are running
-            docker ps -aq --filter "name=vps-" | xargs -r docker rm -f 2>/dev/null || true
+            docker compose -p paperplane down --remove-orphans || true
+
+            # Legacy cleanup: old project name used by previous workflow versions
+            docker compose -p vps down --remove-orphans || true
             
             echo "Pulling new images..."
-            docker compose pull
-            docker compose up -d
+            docker compose -p paperplane pull
+            docker compose -p paperplane up -d
             
             # Wait for containers to start
             sleep 10
@@ -203,7 +175,7 @@ jobs:
             docker image prune -f
             
             echo "Deployment complete!"
-            docker compose ps
+            docker compose -p paperplane ps
           EOF
 
       - name: Summary
