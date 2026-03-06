@@ -109,7 +109,9 @@ jobs:
             if [ -d .git ]; then
               git fetch origin preview
               git checkout preview
-              git pull --ff-only origin preview
+              # Ensure deployment checkout is always clean and matches remote branch
+              # (keeps untracked files like .env, but discards tracked local edits)
+              git reset --hard origin/preview
             else
               git clone --branch preview --single-branch https://github.com/NishantGoswami-Mahakalp/paperplane.git .
             fi
