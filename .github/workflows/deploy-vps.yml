@@ -159,6 +159,19 @@ jobs:
               echo "LIVE_SERVER_SECRET_KEY=secret-key" >> apps/api/.env
               echo "API_KEY_RATE_LIMIT=60/minute" >> apps/api/.env
             fi
+
+            mkdir -p apps/live
+            if [ ! -f apps/live/.env ]; then
+              echo "PORT=3100" > apps/live/.env
+              echo "API_BASE_URL=http://api:8000" >> apps/live/.env
+              echo "WEB_BASE_URL=http://web:3000" >> apps/live/.env
+              echo "LIVE_BASE_URL=http://live:3100" >> apps/live/.env
+              echo "LIVE_BASE_PATH=/live" >> apps/live/.env
+              echo "LIVE_SERVER_SECRET_KEY=secret-key" >> apps/live/.env
+              echo "REDIS_HOST=plane-redis" >> apps/live/.env
+              echo "REDIS_PORT=6379" >> apps/live/.env
+              echo "REDIS_URL=redis://plane-redis:6379/" >> apps/live/.env
+            fi
             
             echo "Stopping existing containers..."
             docker compose -p paperplane down --remove-orphans || true

@@ -42,10 +42,24 @@ services:
   worker:
     image: ghcr.io/nishantgoswami-mahakalp/paperplane-api:latest
     restart: always
+    command: ./bin/docker-entrypoint-worker.sh
+    env_file:
+      - ./apps/api/.env
+    depends_on:
+      - plane-db
+      - plane-redis
+      - plane-mq
 
   beat-worker:
     image: ghcr.io/nishantgoswami-mahakalp/paperplane-api:latest
     restart: always
+    command: ./bin/docker-entrypoint-beat.sh
+    env_file:
+      - ./apps/api/.env
+    depends_on:
+      - plane-db
+      - plane-redis
+      - plane-mq
 
   migrator:
     image: ghcr.io/nishantgoswami-mahakalp/paperplane-api:latest
@@ -59,6 +73,8 @@ services:
   live:
     image: ghcr.io/nishantgoswami-mahakalp/paperplane-live:latest
     restart: always
+    env_file:
+      - ./apps/live/.env
     networks:
       default:
         aliases:
