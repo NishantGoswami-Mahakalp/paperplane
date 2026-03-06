@@ -26,10 +26,17 @@ interface QuickSearchState {
 
 const QuickSearchContext = createContext<QuickSearchState | null>(null);
 
+const DEFAULT_QUICK_SEARCH_STATE: QuickSearchState = {
+  isOpen: false,
+  open: () => {},
+  close: () => {},
+  toggle: () => {},
+};
+
 export const useQuickSearchContext = (): QuickSearchState => {
   const context = useContext(QuickSearchContext);
   if (!context) {
-    throw new Error("useQuickSearchContext must be used within QuickSearchProvider");
+    return DEFAULT_QUICK_SEARCH_STATE;
   }
   return context;
 };

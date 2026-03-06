@@ -52,3 +52,9 @@
 # - linear.api-key
 # - github.org
 # - github.repo
+
+dolt.data-dir: "/home/nishantg/Projects/Tools/paperplane/.beads"
+
+dolt.host: 127.0.0.1
+
+dolt.port: 3307
