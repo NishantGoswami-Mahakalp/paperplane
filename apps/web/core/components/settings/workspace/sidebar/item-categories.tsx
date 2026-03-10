@@ -18,6 +18,12 @@ import { useUserPermissions } from "@/hooks/store/user";
 // local imports
 import { WORKSPACE_SETTINGS_ICONS } from "./item-icon";
 
+const WORKSPACE_SETTINGS_CATEGORY_LABELS: Record<string, string> = {
+  administration: "Administration",
+  features: "Features",
+  developer: "Developer",
+};
+
 export const WorkspaceSettingsSidebarItemCategories = observer(function WorkspaceSettingsSidebarItemCategories() {
   // params
   const { workspaceSlug } = useParams();
@@ -39,7 +45,9 @@ export const WorkspaceSettingsSidebarItemCategories = observer(function Workspac
 
         return (
           <div key={category} className="shrink-0 py-3 first:pt-0 last:pb-0">
-            <div className="p-2 text-caption-md-medium text-tertiary capitalize">{t(category)}</div>
+            <div className="p-2 text-caption-md-medium text-tertiary capitalize">
+              {WORKSPACE_SETTINGS_CATEGORY_LABELS[category] ?? category}
+            </div>
             <div className="flex flex-col">
               {accessibleItems.map((item) => {
                 const isItemActive =

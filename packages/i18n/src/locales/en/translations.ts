@@ -1285,6 +1285,7 @@ export default {
   },
   workspace_projects: {
     label: "{count, plural, one {Project} other {Projects}}",
+    all_projects: "All Projects",
     create: {
       label: "Add Project",
     },
@@ -1320,6 +1321,7 @@ export default {
     },
     scope: {
       my_projects: "My projects",
+      favorites: "Favorites",
       archived_projects: "Archived",
     },
     common: {
@@ -1557,6 +1559,10 @@ export default {
             },
           },
         },
+      },
+      integrations: {
+        title: "Integrations",
+        description: "Connect external tools and services to your workspace.",
       },
       webhooks: {
         heading: "Webhooks",

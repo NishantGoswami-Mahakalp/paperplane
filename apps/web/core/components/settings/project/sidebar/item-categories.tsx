@@ -17,6 +17,13 @@ import { useUserPermissions } from "@/hooks/store/user";
 // local imports
 import { PROJECT_SETTINGS_ICONS } from "./item-icon";
 
+const PROJECT_SETTINGS_CATEGORY_LABELS: Record<string, string> = {
+  general: "General",
+  features: "Features",
+  "work-structure": "Work structure",
+  execution: "Execution",
+};
+
 type Props = {
   projectId: string;
 };
@@ -45,7 +52,9 @@ export const ProjectSettingsSidebarItemCategories = observer(function ProjectSet
 
         return (
           <div key={category} className="shrink-0 py-3 first:pt-0 last:pb-0">
-            <div className="p-2 text-caption-md-medium text-tertiary capitalize">{t(category)}</div>
+            <div className="p-2 text-caption-md-medium text-tertiary capitalize">
+              {PROJECT_SETTINGS_CATEGORY_LABELS[category] ?? category}
+            </div>
             <div className="flex flex-col">
               {accessibleItems.map((item) => {
                 const isItemActive =
