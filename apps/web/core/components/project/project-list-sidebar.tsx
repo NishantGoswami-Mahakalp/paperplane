@@ -14,10 +14,10 @@ import { cn } from "@plane/utils";
 import { useProjectFilter } from "@/hooks/store/use-project-filter";
 
 const FILTER_TABS = [
-  { key: "all", label: "workspace_projects.filter.all", icon: null },
-  { key: "my_projects", label: "workspace_projects.filter.my_projects", icon: null },
-  { key: "favorites", label: "workspace_projects.filter.favorites", icon: StarIcon },
-  { key: "archived_projects", label: "workspace_projects.filter.archived", icon: ArchiveIcon },
+  { key: "all", label: "workspace_projects.all_projects", icon: null },
+  { key: "my_projects", label: "workspace_projects.scope.my_projects", icon: null },
+  { key: "favorites", label: "favorites", icon: StarIcon },
+  { key: "archived_projects", label: "workspace_projects.scope.archived_projects", icon: ArchiveIcon },
 ] as const;
 
 export const ProjectListSidebar = observer(function ProjectListSidebar() {
@@ -63,7 +63,7 @@ export const ProjectListSidebar = observer(function ProjectListSidebar() {
               )}
             >
               {filter.icon && <filter.icon className="h-4 w-4" />}
-              {filter.key === "all" ? t("workspace_projects.filter.all") : t(filter.label)}
+              {t(filter.label)}
             </button>
           );
         })}
@@ -76,7 +76,7 @@ export const ProjectListSidebar = observer(function ProjectListSidebar() {
           )}
         >
           <ClockIcon className="h-4 w-4" />
-          {t("workspace_projects.filter.recent")}
+          {t("home.recents.title")}
         </button>
       </div>
     </div>
