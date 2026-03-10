@@ -5,7 +5,7 @@
  */
 
 import { API_BASE_URL } from "@plane/constants";
-import type { IAppIntegration, IImporterService, IWorkspaceIntegration, IExportServiceResponse } from "@plane/types";
+import type { IAppIntegration, IImporterService, IExportServiceResponse } from "@plane/types";
 import { APIService } from "@/services/api.service";
 
 const APP_INTEGRATIONS: IAppIntegration[] = [
@@ -72,22 +72,6 @@ export class IntegrationService extends APIService {
 
   async getAppIntegrationsList(): Promise<IAppIntegration[]> {
     return Promise.resolve(APP_INTEGRATIONS);
-  }
-
-  async getWorkspaceIntegrationsList(workspaceSlug: string): Promise<IWorkspaceIntegration[]> {
-    return this.get(`/api/workspaces/${workspaceSlug}/workspace-integrations/`)
-      .then((response) => response?.data)
-      .catch((error) => {
-        throw error?.response?.data;
-      });
-  }
-
-  async deleteWorkspaceIntegration(workspaceSlug: string, integrationId: string): Promise<any> {
-    return this.delete(`/api/workspaces/${workspaceSlug}/workspace-integrations/${integrationId}/provider/`)
-      .then((res) => res?.data)
-      .catch((error) => {
-        throw error?.response?.data;
-      });
   }
 
   async getImporterServicesList(workspaceSlug: string): Promise<IImporterService[]> {

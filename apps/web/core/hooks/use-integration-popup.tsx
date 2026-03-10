@@ -34,7 +34,7 @@ const useIntegrationPopup = ({
 
   const checkPopup = () => {
     const check = setInterval(() => {
-      if (!popup || popup.current.closed || popup.current.closed === undefined) {
+      if (!popup || !popup.current || popup.current.closed || popup.current.closed === undefined) {
         clearInterval(check);
         setAuthLoader(false);
       }
@@ -60,6 +60,10 @@ const useIntegrationPopup = ({
 
   const startAuth = () => {
     popup.current = openPopup();
+    if (!popup.current) {
+      setAuthLoader(false);
+      return;
+    }
     checkPopup();
     setAuthLoader(true);
   };

@@ -27,7 +27,7 @@ const integrationService = new IntegrationService();
 function WorkspaceIntegrationsPage() {
   // store hooks
   const { currentWorkspace } = useWorkspace();
-  const { allowPermissions } = useUserPermissions();
+  const { workspaceUserInfo, allowPermissions } = useUserPermissions();
   const { t } = useTranslation();
 
   // derived values
@@ -37,7 +37,7 @@ function WorkspaceIntegrationsPage() {
     : undefined;
   const { data: appIntegrations } = useSWR(APP_INTEGRATIONS, () => integrationService.getAppIntegrationsList());
 
-  if (!isAdmin) return <NotAuthorizedView section="settings" className="h-auto" />;
+  if (workspaceUserInfo && !isAdmin) return <NotAuthorizedView section="settings" className="h-auto" />;
 
   return (
     <>
