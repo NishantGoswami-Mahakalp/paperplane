@@ -22,6 +22,8 @@ export function UserGreetingsView(props: IUserGreetingsView) {
   // store hooks
   const { t } = useTranslation();
 
+  if (!currentTime) return null;
+
   const hour = new Intl.DateTimeFormat("en-US", {
     hour12: false,
     hour: "numeric",

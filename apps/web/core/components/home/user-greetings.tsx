@@ -4,8 +4,6 @@
  * See the LICENSE file for details.
  */
 
-import type { FC } from "react";
-// plane types
 import { useTranslation } from "@plane/i18n";
 import type { IUser } from "@plane/types";
 // plane ui
@@ -22,6 +20,8 @@ export function UserGreetingsView(props: IUserGreetingsView) {
   const { currentTime } = useCurrentTime();
   // store hooks
   const { t } = useTranslation();
+
+  if (!currentTime) return null;
 
   const hour = new Intl.DateTimeFormat("en-US", {
     hour12: false,

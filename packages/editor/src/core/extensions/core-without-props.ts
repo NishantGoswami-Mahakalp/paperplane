@@ -4,8 +4,8 @@
  * See the LICENSE file for details.
  */
 
-import TaskItem from "@tiptap/extension-task-item";
-import TaskList from "@tiptap/extension-task-list";
+import TiptapTaskItem from "@tiptap/extension-task-item";
+import TiptapTaskList from "@tiptap/extension-task-list";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Underline } from "@tiptap/extension-underline";
 // plane editor imports
@@ -41,12 +41,12 @@ export const CoreEditorExtensionsWithoutProps = [
   CustomEmbedExtensionConfig,
   Underline,
   TextStyle,
-  TaskList.configure({
+  TiptapTaskList.configure({
     HTMLAttributes: {
       class: "not-prose pl-2 space-y-2",
     },
   }),
-  TaskItem.configure({
+  TiptapTaskItem.configure({
     HTMLAttributes: {
       class: "flex",
     },
@@ -65,4 +65,4 @@ export const CoreEditorExtensionsWithoutProps = [
   ...CoreEditorAdditionalExtensionsWithoutProps,
 ];
 
-export const DocumentEditorExtensionsWithoutProps = [WorkItemEmbedExtensionConfig, CustomEmbedExtensionConfig];
+export const DocumentEditorExtensionsWithoutProps = [WorkItemEmbedExtensionConfig];

@@ -20,6 +20,6 @@ export const useCurrentTime = () => {
   }, []);
 
   return {
-    currentTime: currentTime ?? new Date(),
+    currentTime,
   };
 };

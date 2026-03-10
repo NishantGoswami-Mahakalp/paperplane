@@ -7,8 +7,63 @@
 import { API_BASE_URL } from "@plane/constants";
 import type { IAppIntegration, IImporterService, IWorkspaceIntegration, IExportServiceResponse } from "@plane/types";
 import { APIService } from "@/services/api.service";
-// types
-// helper
+
+const APP_INTEGRATIONS: IAppIntegration[] = [
+  {
+    id: "github",
+    provider: "github",
+    title: "GitHub",
+    description: "Connect GitHub repositories and sync project work items.",
+    author: "PaperPlane",
+    avatar_url: null,
+    created_at: "",
+    created_by: null,
+    metadata: null,
+    network: 0,
+    redirect_url: "",
+    updated_at: "",
+    updated_by: null,
+    verified: true,
+    webhook_secret: "",
+    webhook_url: "",
+  },
+  {
+    id: "slack",
+    provider: "slack",
+    title: "Slack",
+    description: "Connect Slack channels and sync project activity.",
+    author: "PaperPlane",
+    avatar_url: null,
+    created_at: "",
+    created_by: null,
+    metadata: null,
+    network: 0,
+    redirect_url: "",
+    updated_at: "",
+    updated_by: null,
+    verified: true,
+    webhook_secret: "",
+    webhook_url: "",
+  },
+  {
+    id: "forgejo",
+    provider: "forgejo",
+    title: "Forgejo",
+    description: "Connect Forgejo repositories and import project work items.",
+    author: "PaperPlane",
+    avatar_url: null,
+    created_at: "",
+    created_by: null,
+    metadata: null,
+    network: 0,
+    redirect_url: "",
+    updated_at: "",
+    updated_by: null,
+    verified: true,
+    webhook_secret: "",
+    webhook_url: "",
+  },
+];
 
 export class IntegrationService extends APIService {
   constructor() {
@@ -16,11 +71,7 @@ export class IntegrationService extends APIService {
   }
 
   async getAppIntegrationsList(): Promise<IAppIntegration[]> {
-    return this.get(`/api/integrations/`)
-      .then((response) => response?.data)
-      .catch((error) => {
-        throw error?.response?.data;
-      });
+    return Promise.resolve(APP_INTEGRATIONS);
   }
 
   async getWorkspaceIntegrationsList(workspaceSlug: string): Promise<IWorkspaceIntegration[]> {
