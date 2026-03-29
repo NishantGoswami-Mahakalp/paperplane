@@ -8,4 +8,5 @@
 {"key":"compact_tier2_dep_levels","value":"5"}
 {"key":"compaction_enabled","value":"false"}
 {"key":"issue_prefix","value":"paperplane"}
+{"key":"kv.memory.paperplane-is-a-fork-of-plane-open-source","value":"paperplane is a fork of Plane (open-source project management tool). Codebase inherits Plane's architecture, conventions, and patterns."}
 {"key":"schema_version","value":"6"}
