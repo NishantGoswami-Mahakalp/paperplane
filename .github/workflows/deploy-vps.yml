@@ -7,7 +7,7 @@ concurrency:
 on:
   push:
     branches:
-      - preview
+      - deploy
   workflow_dispatch:
     inputs:
       skip_build:
@@ -107,13 +107,13 @@ jobs:
             
             # Clone the repo to get docker-compose.yml
             if [ -d .git ]; then
-              git fetch origin preview
-              git checkout preview
+              git fetch origin deploy
+              git checkout deploy
               # Ensure deployment checkout is always clean and matches remote branch
               # (keeps untracked files like .env, but discards tracked local edits)
-              git reset --hard origin/preview
+              git reset --hard origin/deploy
             else
-              git clone --branch preview --single-branch https://github.com/NishantGoswami-Mahakalp/paperplane.git .
+              git clone --branch deploy --single-branch https://github.com/NishantGoswami-Mahakalp/paperplane.git .
             fi
             
             cd deploy/vps
