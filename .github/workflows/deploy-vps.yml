@@ -108,7 +108,7 @@ jobs:
             # Clone the repo to get docker-compose.yml
             if [ -d .git ]; then
               git fetch origin deploy
-              git checkout deploy
+              git switch deploy
               # Ensure deployment checkout is always clean and matches remote branch
               # (keeps untracked files like .env, but discards tracked local edits)
               git reset --hard origin/deploy
