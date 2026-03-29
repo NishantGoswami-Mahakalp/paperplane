@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import { isCancel } from "axios";
 import { orderBy, isEmpty, update, set } from "lodash-es";
 import { action, makeObservable, observable, runInAction } from "mobx";
 import { computedFn } from "mobx-utils";
@@ -29,6 +30,13 @@ import type { CoreRootStore } from "@/store/root.store";
 
 type TNotificationLoader = ENotificationLoader | undefined;
 type TNotificationQueryParamType = ENotificationQueryParamType;
+
+const isAbortedRequest = (error: unknown): boolean => {
+  if (isCancel(error)) return true;
+  if (!(error instanceof Error)) return false;
+
+  return error.message === "Request aborted" || error.name === "CanceledError";
+};
 
 export interface IWorkspaceNotificationStore {
   // observables
@@ -141,9 +149,9 @@ export class WorkspaceNotificationStore implements IWorkspaceNotificationStore {
           }
         } else {
           if (this.filters.snoozed) {
-            return n.snoozed_till ? true : false;
+            return !!n.snoozed_till;
           } else if (this.filters.archived) {
-            return n.archived_at ? true : false;
+            return !!n.archived_at;
           } else {
             return true;
           }
@@ -323,6 +331,7 @@ export class WorkspaceNotificationStore implements IWorkspaceNotificationStore {
         });
       return unreadNotificationCount || undefined;
     } catch (error) {
+      if (isAbortedRequest(error)) return undefined;
       console.error("WorkspaceNotificationStore -> getUnreadNotificationsCount -> error", error);
       throw error;
     }
@@ -355,6 +364,7 @@ export class WorkspaceNotificationStore implements IWorkspaceNotificationStore {
       }
       return notificationResponse;
     } catch (error) {
+      if (isAbortedRequest(error)) return undefined;
       console.error("WorkspaceNotificationStore -> getNotifications -> error", error);
       throw error;
     } finally {

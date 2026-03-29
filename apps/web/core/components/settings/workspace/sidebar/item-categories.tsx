@@ -29,9 +29,11 @@ export const WorkspaceSettingsSidebarItemCategories = observer(function Workspac
   const { workspaceSlug } = useParams();
   const pathname = usePathname();
   // store hooks
-  const { allowPermissions } = useUserPermissions();
+  const { workspaceUserInfo, allowPermissions } = useUserPermissions();
   // translation
   const { t } = useTranslation();
+
+  if (!workspaceUserInfo) return null;
 
   return (
     <div className="mt-3 flex flex-col divide-y divide-subtle px-3">
