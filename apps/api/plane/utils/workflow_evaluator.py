@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Optional
 
 from django.db import models
 
-from plane.db.models import Issue, State, WorkflowTransition
+from plane.db.models import Issue, ProjectIssueType, State, WorkflowTransition
 
 if TYPE_CHECKING:
     from plane.db.models import WorkflowState
@@ -23,7 +23,17 @@ class WorkflowEvaluator:
     def __init__(self, issue: "Issue"):
         self.issue = issue
         self.project = issue.project
-        self.issue_type = issue.type
+        self.issue_type = None
+
+        issue_type = getattr(issue, "type", None)
+        issue_type_id = getattr(issue, "type_id", None) or getattr(issue_type, "id", None)
+
+        if issue_type is not None and issue_type_id:
+            self.issue_type = ProjectIssueType.objects.filter(
+                project=issue.project,
+                issue_type_id=issue_type_id,
+                deleted_at__isnull=True,
+            ).first()
 
     def validate_transition(
         self,

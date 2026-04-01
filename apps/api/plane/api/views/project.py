@@ -253,6 +253,7 @@ class ProjectListCreateAPIEndpoint(BaseAPIView):
                             sequence=state["sequence"],
                             workspace=serializer.instance.workspace,
                             group=state["group"],
+                            agent_state=state.get("agent_state"),
                             default=state.get("default", False),
                             created_by=request.user,
                         )

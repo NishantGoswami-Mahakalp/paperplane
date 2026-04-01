@@ -6,13 +6,31 @@
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 # Module import
-from plane.db.models import ProjectMember, WorkspaceMember
+from plane.db.models import APIToken, ProjectMember, WorkspaceMember
 from plane.db.models.project import ROLE
+
+
+def _service_token_allows_project(request, view):
+    auth = getattr(request, "auth", None)
+    if not isinstance(auth, APIToken) or not auth.is_service:
+        return True
+
+    if auth.workspace_id and auth.workspace and auth.workspace.slug != view.workspace_slug:
+        return False
+
+    allowed_project_ids = {str(project_id) for project_id in auth.allowed_project_ids}
+    if not allowed_project_ids:
+        return True
+
+    return str(view.project_id) in allowed_project_ids
 
 
 class ProjectBasePermission(BasePermission):
     def has_permission(self, request, view):
         if request.user.is_anonymous:
+            return False
+
+        if not _service_token_allows_project(request, view):
             return False
 
         ## Safe Methods -> Handle the filtering logic in queryset
@@ -58,6 +76,9 @@ class ProjectMemberPermission(BasePermission):
         if request.user.is_anonymous:
             return False
 
+        if not _service_token_allows_project(request, view):
+            return False
+
         ## Safe Methods -> Handle the filtering logic in queryset
         if request.method in SAFE_METHODS:
             return ProjectMember.objects.filter(
@@ -85,6 +106,9 @@ class ProjectMemberPermission(BasePermission):
 class ProjectEntityPermission(BasePermission):
     def has_permission(self, request, view):
         if request.user.is_anonymous:
+            return False
+
+        if not _service_token_allows_project(request, view):
             return False
 
         # Handle requests based on project__identifier
@@ -121,6 +145,9 @@ class ProjectAdminPermission(BasePermission):
         if request.user.is_anonymous:
             return False
 
+        if not _service_token_allows_project(request, view):
+            return False
+
         return ProjectMember.objects.filter(
             workspace__slug=view.workspace_slug,
             member=request.user,
@@ -133,6 +160,9 @@ class ProjectAdminPermission(BasePermission):
 class ProjectLitePermission(BasePermission):
     def has_permission(self, request, view):
         if request.user.is_anonymous:
+            return False
+
+        if not _service_token_allows_project(request, view):
             return False
 
         return ProjectMember.objects.filter(

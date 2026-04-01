@@ -2,6 +2,16 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from .agent import (
+    ProjectAgentContextAPIEndpoint,
+    ProjectAgentCommentUpdatesAPIEndpoint,
+    ProjectReadyWorkItemsAPIEndpoint,
+    ProjectAgentUpdatesAPIEndpoint,
+    WorkItemAgentContextAPIEndpoint,
+)
+
+from .issue_relation import IssueRelationListCreateAPIEndpoint
+
 from .project import (
     ProjectListCreateAPIEndpoint,
     ProjectDetailAPIEndpoint,

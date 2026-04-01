@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from .agent import urlpatterns as agent_patterns
 from .asset import urlpatterns as asset_patterns
 from .cycle import urlpatterns as cycle_patterns
 from .customer import urlpatterns as customer_patterns
@@ -19,6 +20,7 @@ from .sticky import urlpatterns as sticky_patterns
 from .template import urlpatterns as template_patterns
 
 urlpatterns = [
+    *agent_patterns,
     *asset_patterns,
     *customer_patterns,
     *cycle_patterns,

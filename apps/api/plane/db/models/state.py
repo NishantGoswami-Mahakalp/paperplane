@@ -11,6 +11,7 @@ from django.db.models import Q
 from .project import ProjectBaseModel
 from plane.db.mixins import SoftDeletionManager
 
+
 class StateGroup(models.TextChoices):
     BACKLOG = "backlog", "Backlog"
     UNSTARTED = "unstarted", "Unstarted"
@@ -20,6 +21,16 @@ class StateGroup(models.TextChoices):
     TRIAGE = "triage", "Triage"
 
 
+class StateAgentType(models.TextChoices):
+    BACKLOG = "backlog", "Backlog"
+    READY = "ready", "Ready"
+    IN_PROGRESS = "in_progress", "In Progress"
+    BLOCKED = "blocked", "Blocked"
+    IN_REVIEW = "in_review", "In Review"
+    DONE = "done", "Done"
+    CANCELLED = "cancelled", "Cancelled"
+
+
 # Default states
 DEFAULT_STATES = [
     {
@@ -27,6 +38,7 @@ DEFAULT_STATES = [
         "color": "#60646C",
         "sequence": 15000,
         "group": StateGroup.BACKLOG.value,
+        "agent_state": StateAgentType.BACKLOG.value,
         "default": True,
     },
     {
@@ -34,24 +46,28 @@ DEFAULT_STATES = [
         "color": "#60646C",
         "sequence": 25000,
         "group": StateGroup.UNSTARTED.value,
+        "agent_state": StateAgentType.READY.value,
     },
     {
         "name": "In Progress",
         "color": "#F59E0B",
         "sequence": 35000,
         "group": StateGroup.STARTED.value,
+        "agent_state": StateAgentType.IN_PROGRESS.value,
     },
     {
         "name": "Done",
         "color": "#46A758",
         "sequence": 45000,
         "group": StateGroup.COMPLETED.value,
+        "agent_state": StateAgentType.DONE.value,
     },
     {
         "name": "Cancelled",
         "color": "#9AA4BC",
         "sequence": 55000,
         "group": StateGroup.CANCELLED.value,
+        "agent_state": StateAgentType.CANCELLED.value,
     },
     {
         "name": "Triage",
@@ -86,6 +102,12 @@ class State(ProjectBaseModel):
         choices=StateGroup.choices,
         default=StateGroup.BACKLOG,
         max_length=20,
+    )
+    agent_state = models.CharField(
+        choices=StateAgentType.choices,
+        max_length=20,
+        null=True,
+        blank=True,
     )
     is_triage = models.BooleanField(default=False)
     default = models.BooleanField(default=False)

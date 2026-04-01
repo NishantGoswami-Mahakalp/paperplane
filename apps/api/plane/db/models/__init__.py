@@ -70,7 +70,7 @@ from .project_email_alias import ProjectEmailAlias
 from .received_email import ReceivedEmail
 from .session import Session
 from .social_connection import SocialLoginConnection
-from .state import State, StateGroup, DEFAULT_STATES
+from .state import State, StateGroup, StateAgentType, DEFAULT_STATES
 from .template import (
     IssueTemplate,
     IssueTemplateLabel,

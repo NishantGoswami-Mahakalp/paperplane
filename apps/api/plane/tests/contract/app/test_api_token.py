@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 
-from plane.db.models import APIToken, User
+from plane.db.models import APIToken, Project, ProjectMember, User, Workspace, WorkspaceMember
 
 
 @pytest.mark.contract
@@ -400,3 +400,186 @@ class TestApiTokenEndpoint:
         for url, method in endpoints:
             response = getattr(api_client, method)(url)
             assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_create_service_api_token_with_allowed_project_ids(self, session_client, workspace, create_user):
+        project = Project.objects.create(
+            name="Service Token Project",
+            identifier="STP",
+            workspace=workspace,
+            created_by=create_user,
+            updated_by=create_user,
+        )
+        ProjectMember.objects.create(
+            project=project,
+            member=create_user,
+            role=20,
+            is_active=True,
+            created_by=create_user,
+            updated_by=create_user,
+        )
+        session_client.force_authenticate(user=create_user)
+
+        response = session_client.post(
+            reverse("service-api-tokens", kwargs={"slug": workspace.slug}),
+            {"allowed_project_ids": [str(project.id)]},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["created"] is True
+        assert response.data["allowed_project_ids"] == [str(project.id)]
+        token = APIToken.objects.get(token=response.data["token"])
+        assert token.user != create_user
+        assert token.user.is_bot is True
+        assert token.user.bot_type == "SEVA_SERVICE"
+        assert token.allowed_project_ids == [str(project.id)]
+        assert WorkspaceMember.objects.filter(workspace=workspace, member=token.user, role=20, is_active=True).exists()
+        assert ProjectMember.objects.filter(project=project, member=token.user, role=20, is_active=True).exists()
+
+    @pytest.mark.django_db
+    def test_existing_service_api_token_does_not_return_secret_again(self, session_client, workspace, create_user):
+        project = Project.objects.create(
+            name="Existing Service Token Project",
+            identifier="ESTP",
+            workspace=workspace,
+            created_by=create_user,
+            updated_by=create_user,
+        )
+        ProjectMember.objects.create(
+            project=project,
+            member=create_user,
+            role=20,
+            is_active=True,
+            created_by=create_user,
+            updated_by=create_user,
+        )
+        session_client.force_authenticate(user=create_user)
+
+        first_response = session_client.post(
+            reverse("service-api-tokens", kwargs={"slug": workspace.slug}),
+            {"allowed_project_ids": [str(project.id)]},
+            format="json",
+        )
+        second_response = session_client.post(
+            reverse("service-api-tokens", kwargs={"slug": workspace.slug}),
+            {"allowed_project_ids": [str(project.id)]},
+            format="json",
+        )
+
+        assert first_response.status_code == status.HTTP_201_CREATED
+        assert second_response.status_code == status.HTTP_200_OK
+        assert second_response.data["created"] is False
+        assert "token" not in second_response.data
+
+    @pytest.mark.django_db
+    def test_workspace_member_cannot_manage_service_api_tokens(self, session_client, workspace, create_user, db):
+        unique_id = uuid4().hex[:8]
+        member_user = User.objects.create(email=f"member-{unique_id}@plane.so", username=f"member_{unique_id}")
+        WorkspaceMember.objects.create(workspace=workspace, member=member_user, role=15)
+        session_client.force_authenticate(user=member_user)
+
+        response = session_client.post(
+            reverse("service-api-tokens", kwargs={"slug": workspace.slug}),
+            {"allowed_project_ids": []},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_inactive_workspace_owner_cannot_manage_service_api_tokens(self, session_client, workspace, db):
+        unique_id = uuid4().hex[:8]
+        inactive_owner = User.objects.create(
+            email=f"inactive-owner-{unique_id}@plane.so", username=f"inactive_owner_{unique_id}"
+        )
+        WorkspaceMember.objects.create(workspace=workspace, member=inactive_owner, role=20, is_active=False)
+        session_client.force_authenticate(user=inactive_owner)
+
+        response = session_client.post(
+            reverse("service-api-tokens", kwargs={"slug": workspace.slug}),
+            {"allowed_project_ids": []},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_get_specific_service_token_from_user_endpoint_is_hidden(self, session_client, create_user):
+        service_token = APIToken.objects.create(label="Service Token", user=create_user, user_type=0, is_service=True)
+        session_client.force_authenticate(user=create_user)
+
+        response = session_client.get(reverse("api-tokens-details", kwargs={"pk": service_token.pk}))
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_create_service_api_token_rejects_other_workspace_projects(self, session_client, workspace, create_user):
+        unique_id = uuid4().hex[:8]
+        other_user = User.objects.create(email=f"owner-{unique_id}@plane.so", username=f"owner_{unique_id}")
+        foreign_workspace = Workspace.objects.create(
+            name="Foreign Workspace",
+            owner=other_user,
+            slug=f"foreign-{unique_id}",
+        )
+        WorkspaceMember.objects.create(workspace=foreign_workspace, member=other_user, role=20)
+        foreign_project = Project.objects.create(
+            name="Foreign Project",
+            identifier="FRN",
+            workspace=foreign_workspace,
+            created_by=other_user,
+            updated_by=other_user,
+        )
+        session_client.force_authenticate(user=create_user)
+
+        response = session_client.post(
+            reverse("service-api-tokens", kwargs={"slug": workspace.slug}),
+            {"allowed_project_ids": [str(foreign_project.id)]},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["error"] == "allowed_project_ids must reference projects in the workspace"
+
+    @pytest.mark.django_db
+    def test_service_token_remains_valid_after_creator_membership_is_removed(
+        self, session_client, workspace, create_user
+    ):
+        from rest_framework.test import APIClient
+
+        project = Project.objects.create(
+            name="Decoupled Service Token Project",
+            identifier="DSTP",
+            workspace=workspace,
+            created_by=create_user,
+            updated_by=create_user,
+        )
+        project_member = ProjectMember.objects.create(
+            project=project,
+            member=create_user,
+            role=20,
+            is_active=True,
+            created_by=create_user,
+            updated_by=create_user,
+        )
+        session_client.force_authenticate(user=create_user)
+
+        response = session_client.post(
+            reverse("service-api-tokens", kwargs={"slug": workspace.slug}),
+            {"allowed_project_ids": [str(project.id)]},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        token = APIToken.objects.get(token=response.data["token"])
+
+        WorkspaceMember.objects.filter(workspace=workspace, member=create_user).update(is_active=False)
+        project_member.is_active = False
+        project_member.save(update_fields=["is_active"])
+
+        client = APIClient()
+        client.credentials(HTTP_X_API_KEY=token.token)
+
+        service_response = client.get(f"/api/v1/workspaces/{workspace.slug}/projects/{project.id}/agent-context/")
+
+        assert service_response.status_code == status.HTTP_200_OK

@@ -95,6 +95,11 @@ class TestProjectAPIPost(TestProjectBase):
         expected_states = ["Backlog", "Todo", "In Progress", "Done", "Cancelled"]
         state_names = list(states.values_list("name", flat=True))
         assert set(state_names) == set(expected_states)
+        assert states.get(name="Backlog").agent_state == "backlog"
+        assert states.get(name="Todo").agent_state == "ready"
+        assert states.get(name="In Progress").agent_state == "in_progress"
+        assert states.get(name="Done").agent_state == "done"
+        assert states.get(name="Cancelled").agent_state == "cancelled"
 
     @pytest.mark.django_db
     def test_create_project_with_project_lead(self, session_client, workspace, create_user):

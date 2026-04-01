@@ -6,7 +6,18 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 # Module imports
-from plane.db.models import WorkspaceMember
+from plane.db.models import APIToken, WorkspaceMember
+
+
+def _service_token_allows_workspace(request, view):
+    auth = getattr(request, "auth", None)
+    if not isinstance(auth, APIToken) or not auth.is_service:
+        return True
+
+    if auth.workspace_id and auth.workspace and auth.workspace.slug != view.workspace_slug:
+        return False
+
+    return not auth.allowed_project_ids
 
 
 # Permission Mappings
@@ -54,7 +65,10 @@ class WorkspaceOwnerPermission(BasePermission):
             return False
 
         return WorkspaceMember.objects.filter(
-            workspace__slug=view.workspace_slug, member=request.user, role=Admin
+            workspace__slug=view.workspace_slug,
+            member=request.user,
+            role=Admin,
+            is_active=True,
         ).exists()
 
 
@@ -76,6 +90,9 @@ class WorkspaceEntityPermission(BasePermission):
         if request.user.is_anonymous:
             return False
 
+        if not _service_token_allows_workspace(request, view):
+            return False
+
         ## Safe Methods -> Handle the filtering logic in queryset
         if request.method in SAFE_METHODS:
             return WorkspaceMember.objects.filter(
@@ -95,6 +112,9 @@ class WorkspaceViewerPermission(BasePermission):
         if request.user.is_anonymous:
             return False
 
+        if not _service_token_allows_workspace(request, view):
+            return False
+
         return WorkspaceMember.objects.filter(
             member=request.user, workspace__slug=view.workspace_slug, is_active=True
         ).exists()
@@ -103,6 +123,9 @@ class WorkspaceViewerPermission(BasePermission):
 class WorkspaceUserPermission(BasePermission):
     def has_permission(self, request, view):
         if request.user.is_anonymous:
+            return False
+
+        if not _service_token_allows_workspace(request, view):
             return False
 
         return WorkspaceMember.objects.filter(

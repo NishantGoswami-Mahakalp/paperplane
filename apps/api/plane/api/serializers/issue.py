@@ -25,6 +25,8 @@ from plane.db.models import (
     State,
     User,
     EstimatePoint,
+    IssueHierarchyLink,
+    StateAgentType,
 )
 from plane.utils.content_validator import (
     validate_html_content,
@@ -71,6 +73,41 @@ class IssueSerializer(BaseSerializer):
         model = Issue
         read_only_fields = ["id", "workspace", "project", "updated_by", "updated_at"]
         exclude = ["description_json", "description_stripped"]
+
+    def _is_seva_project(self) -> bool:
+        project_id = self.context.get("project_id")
+        if not project_id:
+            return False
+
+        return (
+            State.objects.filter(
+                project_id=project_id,
+                agent_state__in=[StateAgentType.BLOCKED.value, StateAgentType.IN_REVIEW.value],
+            ).count()
+            == 2
+        )
+
+    def _has_open_children(self) -> bool:
+        if self.instance is None:
+            return False
+
+        direct_child_exists = (
+            Issue.issue_objects.filter(parent=self.instance)
+            .exclude(state__agent_state=StateAgentType.DONE.value)
+            .exists()
+        )
+        if direct_child_exists:
+            return True
+
+        return (
+            IssueHierarchyLink.objects.filter(
+                parent_issue=self.instance,
+                deleted_at__isnull=True,
+                child_issue__deleted_at__isnull=True,
+            )
+            .exclude(child_issue__state__agent_state=StateAgentType.DONE.value)
+            .exists()
+        )
 
     def validate(self, data):
         if (
@@ -124,6 +161,17 @@ class IssueSerializer(BaseSerializer):
             and not State.objects.filter(project_id=self.context.get("project_id"), pk=data.get("state").id).exists()
         ):
             raise serializers.ValidationError("State is not valid please pass a valid state_id")
+
+        if (
+            self.instance is not None
+            and self._is_seva_project()
+            and data.get("state")
+            and data["state"].agent_state == StateAgentType.DONE.value
+            and self._has_open_children()
+        ):
+            raise serializers.ValidationError(
+                {"state": "Parent work items cannot move to Done while child work remains open"}
+            )
 
         # Validate workflow transition if state is changing
         if self.instance and data.get("state"):
